@@ -25,6 +25,17 @@ const LEVEL_B005H: &str = "
 #####
 ";
 
+const LEVEL_B033H: &str = "
+#############
+#     .     #
+# >  .///.@ #
+#     .     #
+#####.//#####
+    #/#/#
+    #//.#
+    #####
+";
+
 type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
 
@@ -45,6 +56,7 @@ enum Tile {
     Hole,
     Exit,
     Button,
+    Glass,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -112,6 +124,7 @@ impl fmt::Debug for Level {
                         Tile::PrimedTrap => '!',
                         Tile::Exit => '>',
                         Tile::Button => 'x',
+                        Tile::Glass => '/',
                     })?;
                 };
             }
@@ -119,6 +132,19 @@ impl fmt::Debug for Level {
         }
         Ok(())
     }
+}
+
+// Assumes s1 is uniform width, because that's our use case
+// and actually checking this with our unicode shenanigans is kind of a pain.
+fn inline_multiline_strs(s1: &str, s2: &str) -> String {
+    let mut out = String::new();
+    for (a, b) in zip(s1.lines(), s2.lines()) {
+        out.push_str(a);
+        out.push_str("   ");
+        out.push_str(b);
+        out.push('\n');
+    }
+    out
 }
 
 impl Level {
@@ -135,6 +161,7 @@ impl Level {
                     GameState::Lose | GameState::Noop => (),
                     GameState::Play(level) => {
                         if let Vacant(slot) = backpath.entry(level.clone()) {
+                            // println!("{}", inline_multiline_strs(&format!("{state:?}"), &format!("{level:?}")));
                             slot.insert(Some(state.clone()));  // XXX: worth Rc-ing? probably.. not.
                             frontier.push_back(level);
                         }
@@ -218,6 +245,11 @@ impl Level {
                     level.entities[player_idx] = None;
                     level.entities[next_player_idx] = Some(Entity::Player);
                 }
+                Tile::Glass => {
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.tiles[next_player_idx] = Tile::Hole; // XXX: not exactly right, but close enough.
+                }
             }
         }
 
@@ -242,6 +274,11 @@ impl Level {
                     Tile::Hole | Tile::PrimedTrap => { return GameState::Lose; }  // XXX: not strictly true..
                     Tile::Trap => {
                         level.tiles[next_eidx] = Tile::PrimedTrap;
+                        level.entities[eidx] = None;
+                        level.entities[next_eidx] = Some(Entity::GolemY);
+                    }
+                    Tile::Glass => {
+                        level.tiles[next_eidx] = Tile::Hole;
                         level.entities[eidx] = None;
                         level.entities[next_eidx] = Some(Entity::GolemY);
                     }
@@ -384,6 +421,7 @@ impl Level {
                     '+' => Tile::Trap,
                     'x' => Tile::Button,
                     '>' => Tile::Exit,
+                    '/' => Tile::Glass,
                     _ => {
                         let entity = match chr {
                             '@' => Entity::Player,
@@ -447,10 +485,17 @@ mod tests {
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 10);
     }
+
+    #[test]
+    fn test_b033h() {
+        let level = Level::load(LEVEL_B033H).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 40);
+    }
 }
 
 fn main() -> Result<()> {
-    let level = Level::load(LEVEL_B005H)?;
+    let level = Level::load(LEVEL_B033H)?;
     // println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
