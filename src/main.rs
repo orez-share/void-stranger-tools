@@ -4,14 +4,25 @@ use std::fmt;
 use std::hash::Hash;
 use std::iter::{once, zip};
 
-const LEVEL: &str = "
+const LEVEL_COVETOUS: &str = "
     # # ###
-    # # # #
-#####8###8##
+### # # # #
+#7###8###8##
 #@...+HH+..#
 #...+H.+H.>#
 #d..H+..+H.#
 ############
+";
+
+const LEVEL_B005H: &str = "
+#####
+#...#
+#@..#
+#+++#
+#x+>#
+#o̟++#
+#.  #
+#####
 ";
 
 type Error = String;  // XXX: :)
@@ -21,10 +32,11 @@ type Result<T> = core::result::Result<T, Error>;
 enum GameState {
     Win,
     Lose,
+    Noop,
     Play(Level),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Tile {
     Floor,
     Wall,
@@ -32,14 +44,31 @@ enum Tile {
     PrimedTrap,
     Hole,
     Exit,
+    Button,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Entity {
     Player,
     GolemY,
     Hand,
     CovetousStatue,
+    DeviousStatue,
+    Egg,
+}
+
+impl Entity {
+    fn is_squishable(&self) -> bool {
+        matches!(self, Entity::Hand)
+    }
+
+    fn is_stabbable(&self) -> bool {
+        matches!(self, Entity::Hand)
+    }
+
+    fn is_pushable(&self) -> bool {
+        matches!(self, Entity::Egg | Entity::DeviousStatue | Entity::CovetousStatue)
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -47,6 +76,10 @@ struct Level {
     width: usize,
     height: usize,
     player_facing: usize,
+    void_wings: bool,
+    void_blade: bool,
+    angry_statues: usize,
+    held_tile: Option<Tile>,
     tiles: Vec<Tile>,
     entities: Vec<Option<Entity>>,
 }
@@ -54,26 +87,33 @@ struct Level {
 impl fmt::Debug for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut it = zip(&self.tiles, &self.entities);
+        write!(f, "\n")?;
         for _ in 0..self.height {
             for (tile, entity) in it.by_ref().take(self.width) {
-                let chr = if let Some(e) = entity {
-                    match e {
+                if let Some(e) = entity {
+                    write!(f, "{}", match e {
                         Entity::Player => '@',
                         Entity::CovetousStatue => '8',
+                        Entity::DeviousStatue => '7',
                         Entity::GolemY => 'd',
                         Entity::Hand => 'H',
+                        Entity::Egg => 'o',
+                    })?;
+                    match tile {
+                        Tile::PrimedTrap => write!(f, "̟")?,
+                        _ => (),
                     }
                 } else {
-                    match tile {
+                    write!(f, "{}", match tile {
                         Tile::Floor => '.',
                         Tile::Wall => '#',
                         Tile::Hole => ' ',
                         Tile::Trap => '+',
                         Tile::PrimedTrap => '!',
                         Tile::Exit => '>',
-                    }
+                        Tile::Button => 'x',
+                    })?;
                 };
-                write!(f, "{}", chr)?;
             }
             write!(f, "\n")?;
         }
@@ -92,7 +132,7 @@ impl Level {
             for next in state.next_states() {
                 match next {
                     GameState::Win => return Ok(Level::reconstruct_path(backpath, state)),
-                    GameState::Lose => (),
+                    GameState::Lose | GameState::Noop => (),
                     GameState::Play(level) => {
                         if let Vacant(slot) = backpath.entry(level.clone()) {
                             slot.insert(Some(state.clone()));  // XXX: worth Rc-ing? probably.. not.
@@ -134,44 +174,50 @@ impl Level {
             .unwrap();
         let next_player_idx = player_idx.wrapping_add(step);
         if next_player_idx >= self.tiles.len() { unimplemented!("OOB"); }
-        // XXX: ideally we deal with this case-by-case,
-        // but right now everything kills us anyway!
-        if level.entities[next_player_idx].is_some() {
-            return GameState::Lose;
-        }
         level.player_facing = step;
-        match level.tiles[next_player_idx] {
-            Tile::Exit => return GameState::Win,
-            Tile::Floor => {
-                level.entities[player_idx] = None;
-                level.entities[next_player_idx] = Some(Entity::Player);
-            }
-            Tile::Wall => if matches!(level.tiles[player_idx], Tile::Hole) {
+        if level.entities[next_player_idx].is_some() {
+            if level.push(next_player_idx, step) {
                 return GameState::Lose;
-            },
-            Tile::Trap => {
-                level.tiles[next_player_idx] = Tile::PrimedTrap;
-                level.entities[player_idx] = None;
-                level.entities[next_player_idx] = Some(Entity::Player);
             }
-            Tile::PrimedTrap => {
-                // XXX: i'm not actually sure this is right..
-                // idk if it can even happen on this level though.
-                if matches!(level.tiles[player_idx], Tile::Hole) {
-                    return GameState::Lose;
+        } else {
+            match level.tiles[next_player_idx] {
+                Tile::Exit => {
+                    if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities, &level.tiles)
+                            .all(|(e, t)| !matches!(t, Tile::Button)
+                            || matches!(e, Some(en) if en != &Entity::Player)) {
+                        return GameState::Win;
+                    }
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
                 }
-                // XXX: also the BFS effect.. but can't happen in this puzzle.
-                level.tiles[next_player_idx] = Tile::Hole;
-                level.entities[player_idx] = None;
-                level.entities[next_player_idx] = Some(Entity::Player);
-            }
-            Tile::Hole => {
-                // XXX: flight!
-                if matches!(level.tiles[player_idx], Tile::Hole) {
-                    return GameState::Lose;
+                Tile::Floor | Tile::Button => {
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
                 }
-                level.entities[player_idx] = None;
-                level.entities[next_player_idx] = Some(Entity::Player);
+                Tile::Wall => if matches!(level.tiles[player_idx], Tile::Hole) {
+                    return GameState::Lose;
+                },
+                Tile::Trap => {
+                    level.tiles[next_player_idx] = Tile::PrimedTrap;
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
+                }
+                Tile::PrimedTrap => {
+                    if !self.void_wings || matches!(level.tiles[player_idx], Tile::Hole) {
+                        return GameState::Lose;
+                    }
+                    // XXX: also the BFS effect.. but can't happen in this puzzle.
+                    level.tiles[next_player_idx] = Tile::Hole;
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
+                }
+                Tile::Hole => {
+                    if !self.void_wings || matches!(level.tiles[player_idx], Tile::Hole) {
+                        return GameState::Lose;
+                    }
+                    level.entities[player_idx] = None;
+                    level.entities[next_player_idx] = Some(Entity::Player);
+                }
             }
         }
 
@@ -188,7 +234,7 @@ impl Level {
             // XXX: boundscheck
             match level.entities[next_eidx] {
                 None => match level.tiles[next_eidx] {
-                    Tile::Exit | Tile::Floor => {
+                    Tile::Exit | Tile::Floor | Tile::Button => {
                         level.entities[eidx] = None;
                         level.entities[next_eidx] = Some(Entity::GolemY);
                     }
@@ -200,14 +246,8 @@ impl Level {
                         level.entities[next_eidx] = Some(Entity::GolemY);
                     }
                 }
-                Some(Entity::Hand) => continue,
-                Some(Entity::CovetousStatue) => {
-                    // XXX: push is hard
-                    // in this puzzle it just means kill.
-                    level.entities[next_eidx].take();
-                }
                 Some(Entity::Player) => { return GameState::Lose }
-                Some(Entity::GolemY) => todo!(),
+                Some(_) => { level.push(next_eidx, golem_step); }
             }
         }
         if level.is_zap(next_player_idx) { return GameState::Lose }
@@ -221,22 +261,84 @@ impl Level {
             .position(|e| matches!(e, Some(Entity::Player)))
             .unwrap();
         let next_player_idx = player_idx.wrapping_add(self.player_facing);
-        // XXX: not actually game over, but won't be req'd for solving.
+
         if next_player_idx >= self.tiles.len() {
-            return GameState::Lose;
+            return GameState::Noop;
         }
-        if let Some(ent) = &self.entities[next_player_idx] {
+        if let Some(ent) = &self.entities[next_player_idx] { // blade kill
+            if !level.void_blade { return GameState::Noop }
             match ent {
                 Entity::Hand => { level.entities[next_player_idx].take(); }
-                Entity::GolemY => { return GameState::Lose; } // doesn't advance the game
+                Entity::GolemY |
+                Entity::DeviousStatue |
+                Entity::Egg => { return GameState::Noop; } // doesn't advance the game
                 _ => panic!("{ent:?}"),
             }
             if level.is_zap(player_idx) { return GameState::Lose }
             GameState::Play(level)
-        } else {
-            // XXX: else staff lift, but not in this puzzle.
-            GameState::Lose
+        } else { // staff lift
+            match level.tiles[next_player_idx] {
+                Tile::Hole => {
+                    let Some(tile) = level.held_tile.take() else { return GameState::Noop };
+                    level.tiles[next_player_idx] = tile;
+                    if level.alert_devious_statue() {
+                        return GameState::Lose;
+                    }
+                    GameState::Play(level)
+                }
+                Tile::Wall => GameState::Noop,
+                tile => {
+                    if level.held_tile.is_some() { return GameState::Noop }
+                    if level.alert_devious_statue() {
+                        return GameState::Lose;
+                    }
+                    level.held_tile = Some(tile);
+                    level.tiles[next_player_idx] = Tile::Hole;
+                    GameState::Play(level)
+                }
+            }
         }
+    }
+
+    // returns if this kills you or not.
+    // XXX: this should return an enum, but
+    // i dont want to.
+    fn push(&mut self, idx: usize, direction: usize) -> bool {
+        match self.entities[idx].unwrap() {
+            Entity::Player => panic!("???"),
+            Entity::Hand | Entity::GolemY => true,
+            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg => {
+                let dest = idx.wrapping_add(direction);
+                match self.tiles[dest] {
+                    Tile::Wall => (),
+                    Tile::Hole => {
+                        self.entities[idx].take();
+                        if self.angry_statues > 0 { todo!() }
+                    }
+                    Tile::PrimedTrap if self.entities[dest].is_none() => {
+                        todo!();
+                    }
+                    _ => if self.entities[dest].map_or(true, |e| e.is_squishable()) {
+                        let pushed = self.entities[idx].take();
+                        self.entities[dest] = pushed;
+                    }
+                }
+                false
+            }
+        }
+    }
+
+    fn alert_devious_statue(&mut self) -> bool {
+        let devious_statues = self.entities.iter()
+            .filter(|e| matches!(e, Some(Entity::DeviousStatue)))
+            .count();
+        if devious_statues > 0 {
+            self.angry_statues += 1;
+            if devious_statues == self.angry_statues {
+                return true;
+            }
+        }
+        false
     }
 
     fn is_zap(&self, player_idx: usize) -> bool {
@@ -265,44 +367,91 @@ impl Level {
     }
 
     fn load(level: &str) -> Result<Level> {
+        // incorrect if we're doing combining char stuff, but.. maybe it's ok.
         let width = level.lines().map(|line| line.len()).max().unwrap();
         let height = level.lines().count();
         let mut tiles = Vec::with_capacity(width * height);
         let mut entities = vec![None; width * height];
+
         for line in level.lines() {
-            for chr in line.bytes() {
+            let mut line_it = line.chars().peekable();
+            while let Some(chr) = line_it.next() {
                 let tile = match chr {
-                    b'#' => Tile::Wall,
-                    b' ' => Tile::Hole,
-                    b'.' => Tile::Floor,
-                    b'+' => Tile::Trap,
-                    b'>' => Tile::Exit,
+                    '̟' => continue,
+                    '#' => Tile::Wall,
+                    ' ' => Tile::Hole,
+                    '.' => Tile::Floor,
+                    '+' => Tile::Trap,
+                    'x' => Tile::Button,
+                    '>' => Tile::Exit,
                     _ => {
                         let entity = match chr {
-                            b'@' => Entity::Player,
-                            b'8' => Entity::CovetousStatue,
-                            b'H' => Entity::Hand,
-                            b'd' => Entity::GolemY,
+                            '@' => Entity::Player,
+                            '7' => Entity::DeviousStatue,
+                            '8' => Entity::CovetousStatue,
+                            'H' => Entity::Hand,
+                            'd' => Entity::GolemY,
+                            'o' => Entity::Egg,
                             _ => return Err(format!("unexpected chr '{}'", chr as char)),
                         };
                         entities[tiles.len()] = Some(entity);
-                        Tile::Floor
+                        match line_it.peek() {
+                            Some('̟') => Tile::PrimedTrap,
+                            _ => Tile::Floor,
+                        }
                     }
                 };
                 tiles.push(tile);
             }
-            for _ in 0..width - line.len() {
+            // XXX: this will fail if an entire line is empty.
+            let extra = (width - (tiles.len() % width)) % width;
+            for _ in 0..extra {
                 tiles.push(Tile::Hole);
             }
         }
-        assert_eq!(width * height, tiles.len());
-        Ok(Level { width, height, tiles, entities, player_facing: width })
+        // assert_eq!(width * height, tiles.len());
+        Ok(Level {
+            width, height, tiles, entities, player_facing: width,
+            void_blade: false, void_wings: false, angry_statues: 0,
+            held_tile: None,
+        })
+    }
+
+    fn set_wings(&mut self) -> &mut Self {
+        self.void_wings = true;
+        self
+    }
+
+    fn set_blade(&mut self) -> &mut Self {
+        self.void_blade = true;
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_covetous() {
+        let mut level = Level::load(LEVEL_COVETOUS).unwrap();
+        level.set_wings().set_blade();
+
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 40);
+    }
+
+    #[test]
+    fn test_b005h() {
+        let level = Level::load(LEVEL_B005H).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 10);
     }
 }
 
 fn main() -> Result<()> {
-    let level = Level::load(LEVEL)?;
-    println!("{level:?}");
+    let level = Level::load(LEVEL_B005H)?;
+    // println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
     Ok(())
