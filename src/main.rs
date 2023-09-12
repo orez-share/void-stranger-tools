@@ -36,6 +36,16 @@ const LEVEL_B033H: &str = "
     #####
 ";
 
+const LEVEL_B062H: &str = "
+########
+#K.....#
+##.#...#
+ #.x.x.#
+ #@..#.##
+ #.....K͕#
+ ########
+";
+
 type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
 
@@ -67,15 +77,16 @@ enum Entity {
     CovetousStatue,
     DeviousStatue,
     Egg,
+    Bull(usize),
 }
 
 impl Entity {
     fn is_squishable(&self) -> bool {
-        matches!(self, Entity::Hand)
+        matches!(self, Entity::Hand | Entity::Bull(_))
     }
 
     fn is_stabbable(&self) -> bool {
-        matches!(self, Entity::Hand)
+        matches!(self, Entity::Hand | Entity::Bull(_))
     }
 
     fn is_pushable(&self) -> bool {
@@ -110,9 +121,12 @@ impl fmt::Debug for Level {
                         Entity::GolemY => 'd',
                         Entity::Hand => 'H',
                         Entity::Egg => 'o',
+                        Entity::Bull(_) => 'K',
                     })?;
                     match tile {
                         Tile::PrimedTrap => write!(f, "̟")?,
+                        Tile::Exit => write!(f, "͕")?,
+                        Tile::Button => write!(f, "͓")?,
                         _ => (),
                     }
                 } else {
@@ -343,7 +357,7 @@ impl Level {
     fn push(&mut self, idx: usize, direction: usize) -> bool {
         match self.entities[idx].unwrap() {
             Entity::Player => panic!("???"),
-            Entity::Hand | Entity::GolemY => true,
+            Entity::Hand | Entity::GolemY | Entity::Bull(_) => true,
             Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg => {
                 let dest = idx.wrapping_add(direction);
                 match self.tiles[dest] {
@@ -414,7 +428,7 @@ impl Level {
             let mut line_it = line.chars().peekable();
             while let Some(chr) = line_it.next() {
                 let tile = match chr {
-                    '̟' => continue,
+                    '̟' | '͕' | '͓' => continue,
                     '#' => Tile::Wall,
                     ' ' => Tile::Hole,
                     '.' => Tile::Floor,
@@ -430,11 +444,14 @@ impl Level {
                             'H' => Entity::Hand,
                             'd' => Entity::GolemY,
                             'o' => Entity::Egg,
+                            'K' => Entity::Bull(0),
                             _ => return Err(format!("unexpected chr '{}'", chr as char)),
                         };
                         entities[tiles.len()] = Some(entity);
                         match line_it.peek() {
                             Some('̟') => Tile::PrimedTrap,
+                            Some('͕') => Tile::Exit,
+                            Some('͓') => Tile::Button,
                             _ => Tile::Floor,
                         }
                     }
@@ -492,11 +509,18 @@ mod tests {
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 40);
     }
+
+    #[test]
+    fn test_b062h() {
+        let level = Level::load(LEVEL_B062H).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 40);
+    }
 }
 
 fn main() -> Result<()> {
-    let level = Level::load(LEVEL_B033H)?;
-    // println!("{level:?}");
+    let level = Level::load(LEVEL_B062H)?;
+    println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
     Ok(())
