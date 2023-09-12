@@ -188,12 +188,11 @@ impl Level {
         } else {
             match level.tiles[next_player_idx] {
                 Tile::Exit => {
+                    level.entities[player_idx] = None;
                     if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities, &level.tiles)
-                            .all(|(e, t)| !matches!(t, Tile::Button)
-                            || matches!(e, Some(en) if en != &Entity::Player)) {
+                            .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
                         return Err(GameOver::Win);
                     }
-                    level.entities[player_idx] = None;
                     level.entities[next_player_idx] = Some(Entity::Player);
                 }
                 Tile::Floor | Tile::Button => {
