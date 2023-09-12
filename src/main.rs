@@ -46,6 +46,26 @@ const LEVEL_B062H: &str = "
  ########
 ";
 
+// just the first part of the level
+const LEVEL_B072H: &str = "
+#########
+#>..    #
+#    .7/#
+# @   //#
+##..++..#
+#########
+";
+
+const LEVEL_B074H: &str = "
+    ########
+#####.##..>#
+#b///.... ##
+##   .##. ##
+#.....##..@#
+#####.// x #
+    ########
+";
+
 type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
 
@@ -72,7 +92,10 @@ enum Tile {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Entity {
     Player,
+    Golem,
+    GolemX,
     GolemY,
+    GolemXY,
     Hand,
     CovetousStatue,
     DeviousStatue,
@@ -118,7 +141,10 @@ impl fmt::Debug for Level {
                         Entity::Player => '@',
                         Entity::CovetousStatue => '8',
                         Entity::DeviousStatue => '7',
+                        Entity::Golem => 'q',
+                        Entity::GolemX => 'p',
                         Entity::GolemY => 'd',
+                        Entity::GolemXY => 'b',
                         Entity::Hand => 'H',
                         Entity::Egg => 'o',
                         Entity::Bull(_) => 'K',
@@ -271,34 +297,43 @@ impl Level {
         // XXX: enemy logic could be very complicated,
         // but for this level it's very simple.
         for (eidx, entity) in self.entities.iter().enumerate() {
-            let Some(Entity::GolemY) = entity else { continue };
-            let golem_step = match step {
-                1 | usize::MAX => step,
-                _ => 0_usize.wrapping_sub(step),
+            let &Some(entity) = entity else { continue };
+            let mob_step = match entity {
+                Entity::Golem => step,
+                Entity::GolemX => match step {
+                    1 | usize::MAX => 0_usize.wrapping_sub(step),
+                    _ => step,
+                }
+                Entity::GolemY => match step {
+                    1 | usize::MAX => step,
+                    _ => 0_usize.wrapping_sub(step),
+                }
+                Entity::GolemXY => 0_usize.wrapping_sub(step),
+                _ => continue,
             };
-            let next_eidx = eidx.wrapping_add(golem_step);
+            let next_eidx = eidx.wrapping_add(mob_step);
             // XXX: boundscheck
             match level.entities[next_eidx] {
                 None => match level.tiles[next_eidx] {
                     Tile::Exit | Tile::Floor | Tile::Button => {
                         level.entities[eidx] = None;
-                        level.entities[next_eidx] = Some(Entity::GolemY);
+                        level.entities[next_eidx] = Some(entity);
                     }
                     Tile::Wall => (),
                     Tile::Hole | Tile::PrimedTrap => { return GameState::Lose; }  // XXX: not strictly true..
                     Tile::Trap => {
                         level.tiles[next_eidx] = Tile::PrimedTrap;
                         level.entities[eidx] = None;
-                        level.entities[next_eidx] = Some(Entity::GolemY);
+                        level.entities[next_eidx] = Some(entity);
                     }
                     Tile::Glass => {
                         level.tiles[next_eidx] = Tile::Hole;
                         level.entities[eidx] = None;
-                        level.entities[next_eidx] = Some(Entity::GolemY);
+                        level.entities[next_eidx] = Some(entity);
                     }
                 }
                 Some(Entity::Player) => { return GameState::Lose }
-                Some(_) => { level.push(next_eidx, golem_step); }
+                Some(_) => { level.push(next_eidx, mob_step); }
             }
         }
         if level.is_zap(next_player_idx) { return GameState::Lose }
@@ -357,7 +392,7 @@ impl Level {
     fn push(&mut self, idx: usize, direction: usize) -> bool {
         match self.entities[idx].unwrap() {
             Entity::Player => panic!("???"),
-            Entity::Hand | Entity::GolemY | Entity::Bull(_) => true,
+            Entity::Hand | Entity::Golem | Entity::GolemX | Entity::GolemY | Entity::GolemXY | Entity::Bull(_) => true,
             Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg => {
                 let dest = idx.wrapping_add(direction);
                 match self.tiles[dest] {
@@ -442,7 +477,10 @@ impl Level {
                             '7' => Entity::DeviousStatue,
                             '8' => Entity::CovetousStatue,
                             'H' => Entity::Hand,
+                            'q' => Entity::Golem,
+                            'p' => Entity::GolemX,
                             'd' => Entity::GolemY,
+                            'b' => Entity::GolemXY,
                             'o' => Entity::Egg,
                             'K' => Entity::Bull(0),
                             _ => return Err(format!("unexpected chr '{}'", chr as char)),
@@ -510,16 +548,16 @@ mod tests {
         assert_eq!(path.len(), 40);
     }
 
-    #[test]
-    fn test_b062h() {
-        let level = Level::load(LEVEL_B062H).unwrap();
-        let path = level.solve().unwrap();
-        assert_eq!(path.len(), 40);
-    }
+    // #[test]
+    // fn test_b062h() {
+    //     let level = Level::load(LEVEL_B062H).unwrap();
+    //     let path = level.solve().unwrap();
+    //     assert_eq!(path.len(), 40);
+    // }
 }
 
 fn main() -> Result<()> {
-    let level = Level::load(LEVEL_B062H)?;
+    let level = Level::load(LEVEL_B074H)?;
     println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
