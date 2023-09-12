@@ -4,80 +4,6 @@ use std::fmt;
 use std::hash::Hash;
 use std::iter::{once, zip};
 
-const LEVEL_COVETOUS: &str = "
-    # # ###
-### # # # #
-#7###8###8##
-#@...+HH+..#
-#...+H.+H.>#
-#d..H+..+H.#
-############
-";
-
-const LEVEL_B005H: &str = "
-#####
-#...#
-#@..#
-#+++#
-#x+>#
-#o̟++#
-#.  #
-#####
-";
-
-const LEVEL_B033H: &str = "
-#############
-#     .     #
-# >  .^^^.@ #
-#     .     #
-#####.^^#####
-    #^#^#
-    #^^.#
-    #####
-";
-
-const LEVEL_B062H: &str = "
-########
-#K.....#
-##.#...#
- #.x.x.#
- #@..#.##
- #.....K͕#
- ########
-";
-
-// just the first part of the level
-const LEVEL_B072H: &str = "
-#########
-#>..    #
-#    .7^#
-# @   ^^#
-##..++..#
-#########
-";
-
-const LEVEL_B074H: &str = "
-    ########
-#####.##..>#
-#b^^^.... ##
-##   .##. ##
-#.....##..@#
-#####.^^ x #
-    ########
-";
-
-const LEVEL_B075H: &str = "
-#######
-# K̭+++#########
-# ^+++.o̟o̟>##o.#
-# ^+++++####.@#
-# ^+7̟+++####.^#
-# ^+++++++##^.#
-##.^+.+..++..##
-##..++++++++##
-#############
-";
-
 type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
 
@@ -574,7 +500,8 @@ mod tests {
 
     #[test]
     fn test_covetous() {
-        let mut level = Level::load(LEVEL_COVETOUS).unwrap();
+        let skb = include_str!("levels/covetous.skb");
+        let mut level = Level::load(skb).unwrap();
         level.set_wings().set_blade();
 
         let path = level.solve().unwrap();
@@ -583,42 +510,57 @@ mod tests {
 
     #[test]
     fn test_b005h() {
-        let level = Level::load(LEVEL_B005H).unwrap();
+        let skb = include_str!("levels/b005h.skb");
+        let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 10);
     }
 
     #[test]
     fn test_b033h() {
-        let level = Level::load(LEVEL_B033H).unwrap();
+        let skb = include_str!("levels/b033h.skb");
+        let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 40);
     }
 
     // #[test]
     // fn test_b062h() {
-    //     let level = Level::load(LEVEL_B062H).unwrap();
+    //     let skb = include_str!("levels/b062h.skb");
+    //     let level = Level::load(skb).unwrap();
     //     let path = level.solve().unwrap();
     //     assert_eq!(path.len(), 40);
     // }
 
     #[test]
+    fn test_b072h() {
+        // just the first part of the level
+        let skb = include_str!("levels/b072h.skb");
+        let level = Level::load(skb).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 25);
+    }
+
+    #[test]
     fn test_b074h() {
-        let level = Level::load(LEVEL_B074H).unwrap();
+        let skb = include_str!("levels/b074h.skb");
+        let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 17);
     }
 
     // #[test]
     // fn test_b075h() {
-    //     let level = Level::load(LEVEL_B075H).unwrap();
+    //     let skb = include_str!("levels/b075h.skb");
+    //     let level = Level::load(skb).unwrap();
     //     let path = level.solve().unwrap();
     //     assert_eq!(path.len(), 17);
     // }
 }
 
 fn main() -> Result<()> {
-    let level = Level::load(LEVEL_B074H)?;
+    let skb = include_str!("levels/b075h.skb");
+    let level = Level::load(skb)?;
     println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
