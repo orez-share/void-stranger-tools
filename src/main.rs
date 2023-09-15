@@ -39,6 +39,7 @@ enum Entity {
     Hand,
     CovetousStatue,
     DeviousStatue,
+    DarkIdol,
     Egg,
     Bull(usize),
 }
@@ -53,7 +54,7 @@ impl Entity {
     }
 
     fn is_pushable(&self) -> bool {
-        matches!(self, Entity::Egg | Entity::DeviousStatue | Entity::CovetousStatue)
+        matches!(self, Entity::Egg | Entity::DeviousStatue | Entity::CovetousStatue | Entity::DarkIdol )
     }
 }
 
@@ -81,6 +82,7 @@ impl fmt::Debug for Level {
                         Entity::Player => '@',
                         Entity::CovetousStatue => '8',
                         Entity::DeviousStatue => '7',
+                        Entity::DarkIdol => '4',
                         Entity::Golem => 'q',
                         Entity::GolemX => 'p',
                         Entity::GolemY => 'd',
@@ -191,6 +193,11 @@ impl Level {
                     level.entities[player_idx] = None;
                     if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities, &level.tiles)
                             .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
+                        // you win! ...unless there's a dark idol lookin at you,
+                        // in which case you Very Lose.
+                        if matches!(level.entities[next_player_idx - level.width], Some(Entity::DarkIdol)) {
+                            return Err(GameOver::Lose);
+                        }
                         return Err(GameOver::Win);
                     }
                     level.entities[next_player_idx] = Some(Entity::Player);
@@ -263,7 +270,8 @@ impl Level {
                 Entity::Hand => { level.entities[next_player_idx].take(); }
                 Entity::GolemY |
                 Entity::DeviousStatue |
-                Entity::Egg => { return Err(GameOver::Noop); } // doesn't advance the game
+                Entity::Egg |
+                Entity::DarkIdol => { return Err(GameOver::Noop); } // doesn't advance the game
                 _ => panic!("{ent:?}"),
             }
             if level.is_zap(player_idx) { return Err(GameOver::Lose) }
@@ -300,7 +308,7 @@ impl Level {
                 if is_player { Err(GameOver::Lose) }
                 else { Continue }
             },
-            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg => {
+            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg | Entity::DarkIdol => {
                 let dest = idx.wrapping_add(direction);
                 match self.tiles[dest] {
                     Tile::Wall => (),
@@ -425,6 +433,7 @@ impl Level {
                     _ => {
                         let entity = match chr {
                             '@' => Entity::Player,
+                            '4' => Entity::DarkIdol,
                             '7' => Entity::DeviousStatue,
                             '8' => Entity::CovetousStatue,
                             'H' => Entity::Hand,
@@ -558,7 +567,7 @@ mod tests {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b075h.skb");
+    let skb = include_str!("levels/b076h.skb");
     let level = Level::load(skb)?;
     println!("{level:?}");
     let path = level.solve();
