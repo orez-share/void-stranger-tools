@@ -418,6 +418,7 @@ impl Level {
         let mut tiles = Vec::with_capacity(width * height);
         let mut entities = vec![None; width * height];
 
+        let mut player_position = None;
         for line in level.lines() {
             let mut line_it = line.chars().peekable();
             while let Some(chr) = line_it.next() {
@@ -432,7 +433,16 @@ impl Level {
                     '^' => Tile::Glass,
                     _ => {
                         let entity = match chr {
-                            '@' => Entity::Player,
+                            '@' => {
+                                if let Some(pos) = player_position {
+                                    return Err(format!(
+                                        "expected exactly one player (found one at {pos} and one at {}",
+                                        tiles.len()
+                                    ));
+                                }
+                                player_position = Some(tiles.len());
+                                Entity::Player
+                            }
                             '4' => Entity::DarkIdol,
                             '7' => Entity::DeviousStatue,
                             '8' => Entity::CovetousStatue,
@@ -462,6 +472,9 @@ impl Level {
             for _ in 0..extra {
                 tiles.push(Tile::Hole);
             }
+        }
+        if player_position.is_none() {
+            return Err("expected exactly one player (found none)".into());
         }
         // assert_eq!(width * height, tiles.len());
         Ok(Level {
