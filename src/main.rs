@@ -577,10 +577,27 @@ mod tests {
     //     let path = level.solve().unwrap();
     //     assert_eq!(path.len(), 17);
     // }
+
+    #[test]
+    fn test_b149h() {
+        let skb = include_str!("levels/b149h.skb");
+        let level = Level::load(skb).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 23);
+    }
+
+    #[test]
+    fn test_b165h() {
+        let skb = include_str!("levels/b165h.skb");
+        let level = Level::load(skb).unwrap();
+        let path = level.solve().unwrap();
+        // DSSSAWDAWZSZW
+        assert_eq!(path.len(), 13);
+    }
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b076h.skb");
+    let skb = include_str!("levels/b165h.skb");
     let level = Level::load(skb)?;
     println!("{level:?}");
     let path = level.solve();
