@@ -27,6 +27,7 @@ enum Tile {
     Exit,
     Button,
     Glass,
+    Chest,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -39,12 +40,18 @@ enum Entity {
     Hand,
     CovetousStatue,
     DeviousStatue,
+    RagingStatue,
     DarkIdol,
     Egg,
     Bull(usize),
 }
 
 impl Entity {
+    fn is_enemy(&self) -> bool {
+        use Entity::*;
+        matches!(self, Golem | GolemX | GolemY | GolemXY | Hand | Bull(_))
+    }
+
     fn is_squishable(&self) -> bool {
         matches!(self, Entity::Hand | Entity::Bull(_))
     }
@@ -54,7 +61,8 @@ impl Entity {
     }
 
     fn is_pushable(&self) -> bool {
-        matches!(self, Entity::Egg | Entity::DeviousStatue | Entity::CovetousStatue | Entity::DarkIdol )
+        use Entity::*;
+        matches!(self, Egg | DeviousStatue | CovetousStatue | DarkIdol | RagingStatue)
     }
 }
 
@@ -82,6 +90,7 @@ impl fmt::Debug for Level {
                         Entity::Player => '@',
                         Entity::CovetousStatue => '8',
                         Entity::DeviousStatue => '7',
+                        Entity::RagingStatue => '5',
                         Entity::DarkIdol => '4',
                         Entity::Golem => 'q',
                         Entity::GolemX => 'p',
@@ -108,6 +117,7 @@ impl fmt::Debug for Level {
                         Tile::Exit => '>',
                         Tile::Button => 'x',
                         Tile::Glass => '^',
+                        Tile::Chest => ')',
                     })?;
                 };
             }
@@ -206,7 +216,7 @@ impl Level {
                     level.entities[player_idx] = None;
                     level.entities[next_player_idx] = Some(Entity::Player);
                 }
-                Tile::Wall => if matches!(level.tiles[player_idx], Tile::Hole) {
+                Tile::Wall | Tile::Chest => if matches!(level.tiles[player_idx], Tile::Hole) {
                     return Err(GameOver::Lose);
                 },
                 Tile::Trap => {
@@ -237,7 +247,7 @@ impl Level {
             }
         }
 
-        if level.is_zap(next_player_idx) { return Err(GameOver::Lose) }
+        level.is_zap(next_player_idx)?;
         // XXX: enemy logic could be very complicated.
         // in particular, I don't know how turn order necessarily works out.
         // we'll do our best for now.
@@ -249,7 +259,16 @@ impl Level {
                 _ => continue
             }
         }
-        if level.is_zap(next_player_idx) { return Err(GameOver::Lose) }
+        // raging check
+        if !level.entities.iter().flatten().any(|e| e.is_enemy()) {
+            for e in &mut level.entities {
+                if matches!(e, Some(Entity::RagingStatue)) {
+                    e.take();
+                }
+            }
+        }
+        // covetous check
+        level.is_zap(next_player_idx)?;
         Ok(level)
     }
 
@@ -271,10 +290,11 @@ impl Level {
                 Entity::GolemY |
                 Entity::DeviousStatue |
                 Entity::Egg |
-                Entity::DarkIdol => { return Err(GameOver::Noop); } // doesn't advance the game
+                Entity::DarkIdol |
+                Entity::RagingStatue => { return Err(GameOver::Noop); } // doesn't advance the game
                 _ => panic!("{ent:?}"),
             }
-            if level.is_zap(player_idx) { return Err(GameOver::Lose) }
+            level.is_zap(player_idx)?;
             Ok(level)
         } else { // staff lift
             match level.tiles[next_player_idx] {
@@ -287,6 +307,12 @@ impl Level {
                     Ok(level)
                 }
                 Tile::Wall => Err(GameOver::Noop),
+                Tile::Chest => if level.player_facing == level.up() {
+                    // open the chest!
+                    level.player_facing = level.down();
+                    level.tiles[next_player_idx] = Tile::Wall;
+                    Ok(level)
+                } else { Err(GameOver::Noop) }
                 tile => {
                     if level.held_tile.is_some() { return Err(GameOver::Noop )}
                     if level.alert_devious_statue() {
@@ -308,7 +334,7 @@ impl Level {
                 if is_player { Err(GameOver::Lose) }
                 else { Continue }
             },
-            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg | Entity::DarkIdol => {
+            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg | Entity::DarkIdol | Entity::RagingStatue => {
                 let dest = idx.wrapping_add(direction);
                 match self.tiles[dest] {
                     Tile::Wall => (),
@@ -342,20 +368,20 @@ impl Level {
         false
     }
 
-    fn is_zap(&self, player_idx: usize) -> bool {
+    fn is_zap(&self, player_idx: usize) -> GameState<()> {
         for step in self.directions() {
             let mut idx = player_idx.wrapping_add(step);
             while idx < self.tiles.len() {
                 if matches!(self.tiles[idx], Tile::Wall) { break }
                 match self.entities[idx] {
-                    Some(Entity::CovetousStatue) => return true,
+                    Some(Entity::CovetousStatue) => return Err(GameOver::Lose),
                     Some(_) => break,
                     None => (),
                 }
                 idx = idx.wrapping_add(step);
             }
         }
-        false
+        Continue
     }
 
     fn golem_step(&mut self, eidx: usize, step: usize) -> GameState<()> {
@@ -383,8 +409,15 @@ impl Level {
                     self.entities[eidx] = None;
                     self.entities[next_eidx] = Some(entity);
                 }
-                Tile::Wall => (),
-                Tile::Hole | Tile::PrimedTrap => { return Err(GameOver::Lose) }  // XXX: not strictly true..
+                Tile::Wall | Tile::Chest => (),
+                Tile::Hole | Tile::PrimedTrap => {
+                    // XXX: we're already struggling with performance.
+                    // on many levels, it's clear that this case means Game Over.
+                    // maybe do some precompute to try to identify these, and make this
+                    // an explicit game over.
+                    // return Err(GameOver::Lose)
+                    self.entities[eidx] = None;
+                }
                 Tile::Trap => {
                     self.tiles[next_eidx] = Tile::PrimedTrap;
                     self.entities[eidx] = None;
@@ -402,9 +435,17 @@ impl Level {
         Continue
     }
 
+    fn up(&self) -> usize {
+        0_usize.wrapping_sub(self.width)
+    }
+
+    fn down(&self) -> usize {
+        self.width
+    }
+
     fn directions(&self) -> Vec<usize> {
         vec![
-            0_usize.wrapping_sub(self.width),
+            self.up(),
             usize::MAX, // -1
             1,
             self.width,
@@ -431,6 +472,7 @@ impl Level {
                     'x' => Tile::Button,
                     '>' => Tile::Exit,
                     '^' => Tile::Glass,
+                    ')' => Tile::Chest,
                     _ => {
                         let entity = match chr {
                             '@' => {
@@ -444,6 +486,7 @@ impl Level {
                                 Entity::Player
                             }
                             '4' => Entity::DarkIdol,
+                            '5' => Entity::RagingStatue,
                             '7' => Entity::DeviousStatue,
                             '8' => Entity::CovetousStatue,
                             'H' => Entity::Hand,
@@ -597,7 +640,7 @@ mod tests {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b165h.skb");
+    let skb = include_str!("levels/b166h.skb");
     let level = Level::load(skb)?;
     println!("{level:?}");
     let path = level.solve();
