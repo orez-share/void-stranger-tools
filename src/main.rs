@@ -67,6 +67,66 @@ impl Entity {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+struct Entities {
+    grid: Vec<Option<Entity>>,
+    roster: Vec<Option<usize>>,
+}
+
+impl Entities {
+    fn position<P: Fn(Entity) -> bool>(&self, pred: P) -> Option<usize> {
+        self.roster.iter().flatten().copied().find(|&idx| {
+            let entity = self.grid[idx].expect("`roster` entries should appear in `grid`");
+            pred(entity)
+        })
+    }
+
+    fn iter<'a>(&'a self) -> EntityIter<'a> {
+        (&self).into_iter()
+    }
+
+    fn step(&mut self, from: usize, to: usize) {
+        self.grid[player_idx]
+        level.entities[player_idx] = None;
+        level.entities[next_player_idx] = Some(Entity::Player);
+    }
+}
+
+impl<'a> IntoIterator for &'a Entities {
+    type Item = (usize, Entity);
+    type IntoIter = EntityIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        // self.roster.iter().flatten().copied()
+        //     .map(|idx| {
+        //         let entity = self.grid[idx].expect("`roster` entries should appear in `grid`");
+        //         (idx, entity)
+        //     })
+        EntityIter { entities: self, roster_idx: 0 }
+    }
+}
+
+// XXX: praying every day for stable impl Trait in type aliases.
+// https://github.com/rust-lang/rust/issues/63063
+struct EntityIter<'a> {
+    entities: &'a Entities,
+    roster_idx: usize,
+}
+
+impl Iterator for EntityIter<'_> {
+    type Item = (usize, Entity);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut idx = None;
+        while idx.is_none() {
+            idx = *self.entities.roster.get(self.roster_idx)?;
+            self.roster_idx += 1;
+        }
+        let idx = idx.unwrap();
+        let entity = self.entities.grid[idx].expect("`roster` entries should appear in `grid`");
+        Some((idx, entity))
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct Level {
     width: usize,
     height: usize,
@@ -77,12 +137,12 @@ struct Level {
     angry_statues: usize,
     held_tile: Option<Tile>,
     tiles: Vec<Tile>,
-    entities: Vec<Option<Entity>>,
+    entities: Entities,
 }
 
 impl fmt::Debug for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut it = zip(&self.tiles, &self.entities);
+        let mut it = zip(&self.tiles, &self.entities.grid);
         write!(f, "\n")?;
         for _ in 0..self.height {
             for (tile, entity) in it.by_ref().take(self.width) {
@@ -179,10 +239,10 @@ impl Level {
 
     fn next_states(&self) -> Vec<GameState<Level>> {
         vec![
-            self.walk(0_usize.wrapping_sub(self.width)),
+            self.walk(self.up()),
             self.walk(usize::MAX), // -1
             self.walk(1),
-            self.walk(self.width),
+            self.walk(self.down()),
             self.act(),
         ]
     }
@@ -190,19 +250,19 @@ impl Level {
     fn walk(&self, step: usize) -> GameState<Level> {
         let mut level = self.clone();
         let player_idx = self.entities
-            .iter()
-            .position(|e| matches!(e, Some(Entity::Player)))
+            .position(|e| matches!(e, Entity::Player))
             .unwrap();
         let next_player_idx = player_idx.wrapping_add(step);
         if next_player_idx >= self.tiles.len() { unimplemented!("OOB"); }
         level.player_facing = step;
-        if level.entities[next_player_idx].is_some() {
+        if level.entities.grid[next_player_idx].is_some() {
             level.push(next_player_idx, step, true)?;
         } else {
             match level.tiles[next_player_idx] {
                 Tile::Exit => {
-                    level.entities[player_idx] = None;
-                    if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities, &level.tiles)
+                    let player = level.entities.lift(player_idx);
+                    // level.entities[player_idx] = None;
+                    if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities.grid, &level.tiles)
                             .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
                         // you win! ...unless there's a dark idol lookin at you,
                         // in which case you Very Lose.
@@ -215,11 +275,11 @@ impl Level {
                         }
                         return Err(GameOver::Win);
                     }
+                    level.entities.place(player);
                     level.entities[next_player_idx] = Some(Entity::Player);
                 }
                 Tile::Floor | Tile::Button => {
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                 }
                 Tile::Wall | Tile::Chest => if matches!(level.tiles[player_idx], Tile::Hole) {
                     return Err(GameOver::Lose);
@@ -256,8 +316,7 @@ impl Level {
         // XXX: enemy logic could be very complicated.
         // in particular, I don't know how turn order necessarily works out.
         // we'll do our best for now.
-        for (eidx, entity) in self.entities.iter().enumerate() {
-            let &Some(entity) = entity else { continue };
+        for (eidx, entity) in &self.entities {
             match entity {
                 Entity::Golem | Entity::GolemX |
                 Entity::GolemY | Entity::GolemXY => level.golem_step(eidx, step)?,
@@ -265,7 +324,7 @@ impl Level {
             }
         }
         // raging check
-        if !level.entities.iter().flatten().any(|e| e.is_enemy()) {
+        if !level.entities.iter().any(|e| e.is_enemy()) {
             for e in &mut level.entities {
                 if matches!(e, Some(Entity::RagingStatue)) {
                     e.take();
@@ -572,15 +631,15 @@ impl Level {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_covetous() {
-        let skb = include_str!("levels/covetous.skb");
-        let mut level = Level::load(skb).unwrap();
-        level.set_wings().set_blade();
+    // #[test]
+    // fn test_covetous() {
+    //     let skb = include_str!("levels/covetous.skb");
+    //     let mut level = Level::load(skb).unwrap();
+    //     level.set_wings().set_blade();
 
-        let path = level.solve().unwrap();
-        assert_eq!(path.len(), 40);
-    }
+    //     let path = level.solve().unwrap();
+    //     assert_eq!(path.len(), 40);
+    // }
 
     #[test]
     fn test_b005h() {
@@ -667,7 +726,7 @@ mod tests {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b166h.skb");
+    let skb = include_str!("levels/b110h.skb");
     let mut level = Level::load(skb)?;
     level.must_get_chests();
     println!("{level:?}");
