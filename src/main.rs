@@ -73,6 +73,7 @@ struct Level {
     player_facing: usize,
     void_wings: bool,
     void_blade: bool,
+    must_get_chests: bool,
     angry_statues: usize,
     held_tile: Option<Tile>,
     tiles: Vec<Tile>,
@@ -206,6 +207,10 @@ impl Level {
                         // you win! ...unless there's a dark idol lookin at you,
                         // in which case you Very Lose.
                         if matches!(level.entities[next_player_idx - level.width], Some(Entity::DarkIdol)) {
+                            return Err(GameOver::Lose);
+                        }
+                        // ...or if you're supposed to get the chests, and you did not.
+                        if level.must_get_chests && level.tiles.iter().any(|t| matches!(t, Tile::Chest)) {
                             return Err(GameOver::Lose);
                         }
                         return Err(GameOver::Win);
@@ -522,8 +527,8 @@ impl Level {
         // assert_eq!(width * height, tiles.len());
         Ok(Level {
             width, height, tiles, entities, player_facing: width,
-            void_blade: false, void_wings: false, angry_statues: 0,
-            held_tile: None,
+            void_blade: false, void_wings: false, must_get_chests: false,
+            angry_statues: 0, held_tile: None,
         })
     }
 
@@ -534,6 +539,11 @@ impl Level {
 
     fn set_blade(&mut self) -> &mut Self {
         self.void_blade = true;
+        self
+    }
+
+    fn must_get_chests(&mut self) -> &mut Self {
+        self.must_get_chests = true;
         self
     }
 
@@ -637,11 +647,29 @@ mod tests {
         // DSSSAWDAWZSZW
         assert_eq!(path.len(), 13);
     }
+
+    #[test]
+    fn test_b166h() {
+        let skb = include_str!("levels/b166h.skb");
+        let level = Level::load(skb).unwrap();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 7);
+    }
+
+    #[test]
+    fn test_b166h_chest() {
+        let skb = include_str!("levels/b166h.skb");
+        let mut level = Level::load(skb).unwrap();
+        level.must_get_chests();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 8);
+    }
 }
 
 fn main() -> Result<()> {
     let skb = include_str!("levels/b166h.skb");
-    let level = Level::load(skb)?;
+    let mut level = Level::load(skb)?;
+    level.must_get_chests();
     println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
