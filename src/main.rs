@@ -74,6 +74,10 @@ struct Level {
     void_wings: bool,
     void_blade: bool,
     must_get_chests: bool,
+    // XXX: `golem_pacifist` is a weird thing to codify.
+    // as we come up with more cases we want to support, we may
+    // rework this. For now though, this serves our use cases.
+    golem_pacifist: bool,
     angry_statues: usize,
     held_tile: Option<Tile>,
     tiles: Vec<Tile>,
@@ -429,11 +433,12 @@ impl Level {
                 }
                 Tile::Wall | Tile::Chest => (),
                 Tile::Hole | Tile::PrimedTrap => {
-                    // XXX: we're already struggling with performance.
+                    // we're already struggling with performance.
                     // on many levels, it's clear that this case means Game Over.
-                    // maybe do some precompute to try to identify these, and make this
-                    // an explicit game over.
-                    // return Err(GameOver::Lose)
+                    // XXX: maybe also do some precompute to try to identify these.
+                    if self.golem_pacifist {
+                        return Err(GameOver::Lose);
+                    }
                     self.entities[eidx] = None;
                 }
                 Tile::Trap => {
@@ -540,7 +545,7 @@ impl Level {
         // assert_eq!(width * height, tiles.len());
         Ok(Level {
             width, height, tiles, entities, player_facing: width,
-            void_blade: false, void_wings: false, must_get_chests: false,
+            void_blade: false, void_wings: false, must_get_chests: false, golem_pacifist: false,
             angry_statues: 0, held_tile: None,
         })
     }
@@ -557,6 +562,11 @@ impl Level {
 
     fn must_get_chests(&mut self) -> &mut Self {
         self.must_get_chests = true;
+        self
+    }
+
+    fn set_golem_pacifist(&mut self) -> &mut Self {
+        self.golem_pacifist = true;
         self
     }
 
@@ -589,7 +599,7 @@ mod tests {
     fn test_covetous() {
         let skb = include_str!("levels/covetous.skb");
         let mut level = Level::load(skb).unwrap();
-        level.set_wings().set_blade();
+        level.set_wings().set_blade().set_golem_pacifist();
 
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 40);
