@@ -201,21 +201,11 @@ impl Level {
         } else {
             match level.tiles[next_player_idx] {
                 Tile::Exit => {
+                    // move player _before_ checking the escape.
+                    // this ensures the player can't escape by holding their own button
                     level.entities[player_idx] = None;
-                    if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities, &level.tiles)
-                            .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
-                        // you win! ...unless there's a dark idol lookin at you,
-                        // in which case you Very Lose.
-                        if matches!(level.entities[next_player_idx - level.width], Some(Entity::DarkIdol)) {
-                            return Err(GameOver::Lose);
-                        }
-                        // ...or if you're supposed to get the chests, and you did not.
-                        if level.must_get_chests && level.tiles.iter().any(|t| matches!(t, Tile::Chest)) {
-                            return Err(GameOver::Lose);
-                        }
-                        return Err(GameOver::Win);
-                    }
                     level.entities[next_player_idx] = Some(Entity::Player);
+                    level.check_escape(next_player_idx)?;
                 }
                 Tile::Floor | Tile::Button => {
                     level.entities[player_idx] = None;
@@ -264,6 +254,7 @@ impl Level {
                 _ => continue
             }
         }
+
         // raging check
         if !level.entities.iter().flatten().any(|e| e.is_enemy()) {
             for e in &mut level.entities {
@@ -272,6 +263,9 @@ impl Level {
                 }
             }
         }
+
+        level.check_escape(next_player_idx)?;
+
         // covetous check
         level.is_zap(next_player_idx)?;
         Ok(level)
@@ -371,6 +365,25 @@ impl Level {
             }
         }
         false
+    }
+
+    fn check_escape(&self, player_idx: usize) -> GameState<()> {
+        if matches!(self.tiles[player_idx], Tile::Exit) &&
+            !matches!(self.held_tile, Some(Tile::Button)) &&
+            zip(&self.entities, &self.tiles)
+                .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
+            // you win! ...unless there's a dark idol lookin at you,
+            // in which case you Very Lose.
+            if matches!(self.entities[player_idx - self.width], Some(Entity::DarkIdol)) {
+                return Err(GameOver::Lose);
+            }
+            // ...or if you're supposed to get the chests, and you did not.
+            if self.must_get_chests && self.tiles.iter().any(|t| matches!(t, Tile::Chest)) {
+                return Err(GameOver::Lose);
+            }
+            return Err(GameOver::Win);
+        }
+        Ok(())
     }
 
     fn is_zap(&self, player_idx: usize) -> GameState<()> {
@@ -636,7 +649,7 @@ mod tests {
         let skb = include_str!("levels/b149h.skb");
         let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
-        assert_eq!(path.len(), 23);
+        assert_eq!(path.len(), 19);
     }
 
     #[test]
@@ -644,8 +657,8 @@ mod tests {
         let skb = include_str!("levels/b165h.skb");
         let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
-        // DSSSAWDAWZSZW
-        assert_eq!(path.len(), 13);
+        // DSSSAWWZSZS
+        assert_eq!(path.len(), 11);
     }
 
     #[test]
@@ -666,10 +679,31 @@ mod tests {
     }
 }
 
+fn play(mut level: Level, commands: &str) -> GameState<Level> {
+    for c in commands.chars() {
+        println!("{level:?}");
+        level = match c {
+            'W' => level.walk(level.up())?,
+            'A' => level.walk(usize::MAX)?,
+            'S' => level.walk(level.down())?,
+            'D' => level.walk(1)?,
+            'Z' => level.act()?,
+            _ => panic!("unexpected char: '{c}'"),
+        };
+    }
+    println!("{level:?}");
+    Ok(level)
+}
+
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b166h.skb");
-    let mut level = Level::load(skb)?;
-    level.must_get_chests();
+    let skb = include_str!("levels/b149h.skb");
+    let level = Level::load(skb)?;
+    // match play(level, "DSSSAWDAWZSZS") {
+    //     Err(GameOver::Win) => println!("Win!"),
+    //     e @ Err(_) => return Err(format!("{e:?}")),
+    //     Ok(_) => (),
+    // }
+    // level.must_get_chests();
     println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
