@@ -134,6 +134,10 @@ struct Level {
     void_wings: bool,
     void_blade: bool,
     must_get_chests: bool,
+    // XXX: `golem_pacifist` is a weird thing to codify.
+    // as we come up with more cases we want to support, we may
+    // rework this. For now though, this serves our use cases.
+    golem_pacifist: bool,
     angry_statues: usize,
     held_tile: Option<Tile>,
     tiles: Vec<Tile>,
@@ -260,23 +264,11 @@ impl Level {
         } else {
             match level.tiles[next_player_idx] {
                 Tile::Exit => {
-                    let player = level.entities.lift(player_idx);
-                    // level.entities[player_idx] = None;
-                    if !matches!(level.held_tile, Some(Tile::Button)) && zip(&level.entities.grid, &level.tiles)
-                            .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
-                        // you win! ...unless there's a dark idol lookin at you,
-                        // in which case you Very Lose.
-                        if matches!(level.entities[next_player_idx - level.width], Some(Entity::DarkIdol)) {
-                            return Err(GameOver::Lose);
-                        }
-                        // ...or if you're supposed to get the chests, and you did not.
-                        if level.must_get_chests && level.tiles.iter().any(|t| matches!(t, Tile::Chest)) {
-                            return Err(GameOver::Lose);
-                        }
-                        return Err(GameOver::Win);
-                    }
-                    level.entities.place(player);
+                    // move player _before_ checking the escape.
+                    // this ensures the player can't escape by holding their own button
+                    level.entities[player_idx] = None;
                     level.entities[next_player_idx] = Some(Entity::Player);
+                    level.check_escape(next_player_idx)?;
                 }
                 Tile::Floor | Tile::Button => {
                     level.entities.step(player_idx, next_player_idx);
@@ -323,6 +315,7 @@ impl Level {
                 _ => continue
             }
         }
+
         // raging check
         if !level.entities.iter().any(|e| e.is_enemy()) {
             for e in &mut level.entities {
@@ -331,6 +324,9 @@ impl Level {
                 }
             }
         }
+
+        level.check_escape(next_player_idx)?;
+
         // covetous check
         level.is_zap(next_player_idx)?;
         Ok(level)
@@ -432,6 +428,25 @@ impl Level {
         false
     }
 
+    fn check_escape(&self, player_idx: usize) -> GameState<()> {
+        if matches!(self.tiles[player_idx], Tile::Exit) &&
+            !matches!(self.held_tile, Some(Tile::Button)) &&
+            zip(&self.entities, &self.tiles)
+                .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
+            // you win! ...unless there's a dark idol lookin at you,
+            // in which case you Very Lose.
+            if matches!(self.entities[player_idx - self.width], Some(Entity::DarkIdol)) {
+                return Err(GameOver::Lose);
+            }
+            // ...or if you're supposed to get the chests, and you did not.
+            if self.must_get_chests && self.tiles.iter().any(|t| matches!(t, Tile::Chest)) {
+                return Err(GameOver::Lose);
+            }
+            return Err(GameOver::Win);
+        }
+        Ok(())
+    }
+
     fn is_zap(&self, player_idx: usize) -> GameState<()> {
         for step in self.directions() {
             let mut idx = player_idx.wrapping_add(step);
@@ -475,11 +490,12 @@ impl Level {
                 }
                 Tile::Wall | Tile::Chest => (),
                 Tile::Hole | Tile::PrimedTrap => {
-                    // XXX: we're already struggling with performance.
+                    // we're already struggling with performance.
                     // on many levels, it's clear that this case means Game Over.
-                    // maybe do some precompute to try to identify these, and make this
-                    // an explicit game over.
-                    // return Err(GameOver::Lose)
+                    // XXX: maybe also do some precompute to try to identify these.
+                    if self.golem_pacifist {
+                        return Err(GameOver::Lose);
+                    }
                     self.entities[eidx] = None;
                 }
                 Tile::Trap => {
@@ -586,7 +602,7 @@ impl Level {
         // assert_eq!(width * height, tiles.len());
         Ok(Level {
             width, height, tiles, entities, player_facing: width,
-            void_blade: false, void_wings: false, must_get_chests: false,
+            void_blade: false, void_wings: false, must_get_chests: false, golem_pacifist: false,
             angry_statues: 0, held_tile: None,
         })
     }
@@ -603,6 +619,11 @@ impl Level {
 
     fn must_get_chests(&mut self) -> &mut Self {
         self.must_get_chests = true;
+        self
+    }
+
+    fn set_golem_pacifist(&mut self) -> &mut Self {
+        self.golem_pacifist = true;
         self
     }
 
@@ -635,8 +656,7 @@ mod tests {
     // fn test_covetous() {
     //     let skb = include_str!("levels/covetous.skb");
     //     let mut level = Level::load(skb).unwrap();
-    //     level.set_wings().set_blade();
-
+    //     level.set_wings().set_blade().set_golem_pacifist();
     //     let path = level.solve().unwrap();
     //     assert_eq!(path.len(), 40);
     // }
@@ -695,7 +715,7 @@ mod tests {
         let skb = include_str!("levels/b149h.skb");
         let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
-        assert_eq!(path.len(), 23);
+        assert_eq!(path.len(), 19);
     }
 
     #[test]
@@ -703,8 +723,8 @@ mod tests {
         let skb = include_str!("levels/b165h.skb");
         let level = Level::load(skb).unwrap();
         let path = level.solve().unwrap();
-        // DSSSAWDAWZSZW
-        assert_eq!(path.len(), 13);
+        // DSSSAWWZSZS
+        assert_eq!(path.len(), 11);
     }
 
     #[test]
@@ -725,10 +745,31 @@ mod tests {
     }
 }
 
+fn play(mut level: Level, commands: &str) -> GameState<Level> {
+    for c in commands.chars() {
+        println!("{level:?}");
+        level = match c {
+            'W' => level.walk(level.up())?,
+            'A' => level.walk(usize::MAX)?,
+            'S' => level.walk(level.down())?,
+            'D' => level.walk(1)?,
+            'Z' => level.act()?,
+            _ => panic!("unexpected char: '{c}'"),
+        };
+    }
+    println!("{level:?}");
+    Ok(level)
+}
+
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b110h.skb");
+    let skb = include_str!("levels/b149h.skb");
     let mut level = Level::load(skb)?;
     level.must_get_chests();
+    // match play(level, "DSSSAWDAWZSZS") {
+    //     Err(GameOver::Win) => println!("Win!"),
+    //     e @ Err(_) => return Err(format!("{e:?}")),
+    //     Ok(_) => (),
+    // }
     println!("{level:?}");
     let path = level.solve();
     println!("{path:?}");
