@@ -68,14 +68,14 @@ impl Entity {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Entities {
-    grid: Vec<Option<Entity>>,
+    grid: Vec<Option<(usize, Entity)>>,
     roster: Vec<Option<usize>>,
 }
 
 impl Entities {
     fn position<P: Fn(Entity) -> bool>(&self, pred: P) -> Option<usize> {
         self.roster.iter().flatten().copied().find(|&idx| {
-            let entity = self.grid[idx].expect("`roster` entries should appear in `grid`");
+            let (_, entity) = self.grid[idx].expect("`roster` entries should appear in `grid`");
             pred(entity)
         })
     }
@@ -85,9 +85,10 @@ impl Entities {
     }
 
     fn step(&mut self, from: usize, to: usize) {
-        self.grid[player_idx]
-        level.entities[player_idx] = None;
-        level.entities[next_player_idx] = Some(Entity::Player);
+        let (roster_id, entity) = self.grid[from].take()
+            .expect("an entity at `from` (found None)");
+        self.grid[to] = Some((roster_id, entity));
+        self.roster[roster_id] = Some(to);
     }
 }
 
@@ -121,7 +122,8 @@ impl Iterator for EntityIter<'_> {
             self.roster_idx += 1;
         }
         let idx = idx.unwrap();
-        let entity = self.entities.grid[idx].expect("`roster` entries should appear in `grid`");
+        let (_, entity) = self.entities.grid[idx]
+            .expect("`roster` entries should appear in `grid`");
         Some((idx, entity))
     }
 }
