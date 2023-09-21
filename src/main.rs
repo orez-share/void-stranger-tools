@@ -1,8 +1,11 @@
+mod entities;
+
 use std::collections::{HashMap, VecDeque};
 use std::collections::hash_map::Entry::Vacant;
 use std::fmt;
 use std::hash::Hash;
 use std::iter::{once, zip};
+use entities::{Entity, Entities};
 
 type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
@@ -30,104 +33,6 @@ enum Tile {
     Chest,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Entity {
-    Player,
-    Golem,
-    GolemX,
-    GolemY,
-    GolemXY,
-    Hand,
-    CovetousStatue,
-    DeviousStatue,
-    RagingStatue,
-    DarkIdol,
-    Egg,
-    Bull(usize),
-}
-
-impl Entity {
-    fn is_enemy(&self) -> bool {
-        use Entity::*;
-        matches!(self, Golem | GolemX | GolemY | GolemXY | Hand | Bull(_))
-    }
-
-    fn is_squishable(&self) -> bool {
-        matches!(self, Entity::Hand | Entity::Bull(_))
-    }
-
-    fn is_stabbable(&self) -> bool {
-        matches!(self, Entity::Hand | Entity::Bull(_))
-    }
-
-    fn is_pushable(&self) -> bool {
-        use Entity::*;
-        matches!(self, Egg | DeviousStatue | CovetousStatue | DarkIdol | RagingStatue)
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct Entities {
-    grid: Vec<Option<(usize, Entity)>>,
-    roster: Vec<Option<usize>>,
-}
-
-impl Entities {
-    fn position<P: Fn(Entity) -> bool>(&self, pred: P) -> Option<usize> {
-        self.roster.iter().flatten().copied().find(|&idx| {
-            let (_, entity) = self.grid[idx].expect("`roster` entries should appear in `grid`");
-            pred(entity)
-        })
-    }
-
-    fn iter<'a>(&'a self) -> EntityIter<'a> {
-        (&self).into_iter()
-    }
-
-    fn step(&mut self, from: usize, to: usize) {
-        let (roster_id, entity) = self.grid[from].take()
-            .expect("an entity at `from` (found None)");
-        self.grid[to] = Some((roster_id, entity));
-        self.roster[roster_id] = Some(to);
-    }
-}
-
-impl<'a> IntoIterator for &'a Entities {
-    type Item = (usize, Entity);
-    type IntoIter = EntityIter<'a>;
-    fn into_iter(self) -> Self::IntoIter {
-        // self.roster.iter().flatten().copied()
-        //     .map(|idx| {
-        //         let entity = self.grid[idx].expect("`roster` entries should appear in `grid`");
-        //         (idx, entity)
-        //     })
-        EntityIter { entities: self, roster_idx: 0 }
-    }
-}
-
-// XXX: praying every day for stable impl Trait in type aliases.
-// https://github.com/rust-lang/rust/issues/63063
-struct EntityIter<'a> {
-    entities: &'a Entities,
-    roster_idx: usize,
-}
-
-impl Iterator for EntityIter<'_> {
-    type Item = (usize, Entity);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut idx = None;
-        while idx.is_none() {
-            idx = *self.entities.roster.get(self.roster_idx)?;
-            self.roster_idx += 1;
-        }
-        let idx = idx.unwrap();
-        let (_, entity) = self.entities.grid[idx]
-            .expect("`roster` entries should appear in `grid`");
-        Some((idx, entity))
-    }
-}
-
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Level {
     width: usize,
@@ -148,7 +53,7 @@ struct Level {
 
 impl fmt::Debug for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut it = zip(&self.tiles, &self.entities.grid);
+        let mut it = zip(&self.tiles, self.entities.iter_grid());
         write!(f, "\n")?;
         for _ in 0..self.height {
             for (tile, entity) in it.by_ref().take(self.width) {
@@ -258,18 +163,18 @@ impl Level {
         let player_idx = self.entities
             .position(|e| matches!(e, Entity::Player))
             .unwrap();
-        let next_player_idx = player_idx.wrapping_add(step);
+        let mut next_player_idx = player_idx.wrapping_add(step);
         if next_player_idx >= self.tiles.len() { unimplemented!("OOB"); }
         level.player_facing = step;
-        if level.entities.grid[next_player_idx].is_some() {
-            level.push(next_player_idx, step, true)?;
+        if level.entities.at(next_player_idx).is_some() {
+            level.push_entity(next_player_idx, step, true)?;
+            next_player_idx = player_idx;
         } else {
             match level.tiles[next_player_idx] {
                 Tile::Exit => {
                     // move player _before_ checking the escape.
                     // this ensures the player can't escape by holding their own button
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                     level.check_escape(next_player_idx)?;
                 }
                 Tile::Floor | Tile::Button => {
@@ -280,27 +185,23 @@ impl Level {
                 },
                 Tile::Trap => {
                     level.tiles[next_player_idx] = Tile::PrimedTrap;
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                 }
                 Tile::PrimedTrap => {
                     if !self.void_wings || matches!(level.tiles[player_idx], Tile::Hole) {
                         return Err(GameOver::Lose);
                     }
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                     level.drop_primed_traps(next_player_idx)?;
                 }
                 Tile::Hole => {
                     if !self.void_wings || matches!(level.tiles[player_idx], Tile::Hole) {
                         return Err(GameOver::Lose);
                     }
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                 }
                 Tile::Glass => {
-                    level.entities[player_idx] = None;
-                    level.entities[next_player_idx] = Some(Entity::Player);
+                    level.entities.step(player_idx, next_player_idx);
                     level.tiles[next_player_idx] = Tile::Hole; // XXX: not exactly right, but close enough.
                 }
             }
@@ -319,12 +220,8 @@ impl Level {
         }
 
         // raging check
-        if !level.entities.iter().any(|e| e.is_enemy()) {
-            for e in &mut level.entities {
-                if matches!(e, Some(Entity::RagingStatue)) {
-                    e.take();
-                }
-            }
+        if !level.entities.iter().any(|(_, e)| e.is_enemy()) {
+            level.entities.retain(|e| !matches!(e, Entity::RagingStatue));
         }
 
         level.check_escape(next_player_idx)?;
@@ -337,18 +234,17 @@ impl Level {
     fn act(&self) -> GameState<Level> {
         let mut level = self.clone();
         let player_idx = self.entities
-            .iter()
-            .position(|e| matches!(e, Some(Entity::Player)))
+            .position(|e| matches!(e, Entity::Player))
             .unwrap();
         let next_player_idx = player_idx.wrapping_add(self.player_facing);
 
         if next_player_idx >= self.tiles.len() {
             return Err(GameOver::Noop);
         }
-        if let Some(ent) = &self.entities[next_player_idx] { // blade kill
+        if let Some(ent) = &self.entities.at(next_player_idx) { // blade kill
             if !level.void_blade { return Err(GameOver::Noop) }
             match ent {
-                Entity::Hand => { level.entities[next_player_idx].take(); }
+                Entity::Hand => { level.entities.lift(next_player_idx); }
                 Entity::GolemY |
                 Entity::DeviousStatue |
                 Entity::Egg |
@@ -389,27 +285,32 @@ impl Level {
     }
 
     // XXX: `is_player` flag is kinda gross but ᖍ(∙⟞∙)ᖌ
-    fn push(&mut self, idx: usize, direction: usize, is_player: bool) -> GameState<()> {
-        match self.entities[idx].unwrap() {
+    fn push_entity(&mut self, idx: usize, direction: usize, is_player: bool) -> GameState<()> {
+        match self.entities.at(idx).unwrap() {
             Entity::Player => panic!("???"),
             Entity::Hand | Entity::Golem | Entity::GolemX | Entity::GolemY | Entity::GolemXY | Entity::Bull(_) => {
                 if is_player { Err(GameOver::Lose) }
                 else { Continue }
-            },
-            Entity::CovetousStatue | Entity::DeviousStatue | Entity::Egg | Entity::DarkIdol | Entity::RagingStatue => {
+            }
+            Entity::CovetousStatue |
+            Entity::DeviousStatue |
+            Entity::Egg |
+            Entity::DarkIdol |
+            Entity::RagingStatue => {
                 let dest = idx.wrapping_add(direction);
+                let can_squish = self.entities.at(dest).map_or(true, |e| e.is_squishable());
                 match self.tiles[dest] {
                     Tile::Wall => (),
                     Tile::Hole => {
-                        self.entities[idx].take();
+                        self.entities.lift(idx);
                         if self.angry_statues > 0 { todo!() }
                     }
-                    Tile::PrimedTrap if self.entities[dest].is_none() => {
+                    Tile::PrimedTrap => if can_squish {
+                        self.entities.step(idx, dest);
                         self.drop_primed_traps(dest)?;
                     }
-                    _ => if self.entities[dest].map_or(true, |e| e.is_squishable()) {
-                        let pushed = self.entities[idx].take();
-                        self.entities[dest] = pushed;
+                    _ => if can_squish {
+                        self.entities.step(idx, dest);
                     }
                 }
                 Continue
@@ -419,7 +320,7 @@ impl Level {
 
     fn alert_devious_statue(&mut self) -> bool {
         let devious_statues = self.entities.iter()
-            .filter(|e| matches!(e, Some(Entity::DeviousStatue)))
+            .filter(|(_, e)| matches!(e, Entity::DeviousStatue))
             .count();
         if devious_statues > 0 {
             self.angry_statues += 1;
@@ -433,11 +334,11 @@ impl Level {
     fn check_escape(&self, player_idx: usize) -> GameState<()> {
         if matches!(self.tiles[player_idx], Tile::Exit) &&
             !matches!(self.held_tile, Some(Tile::Button)) &&
-            zip(&self.entities, &self.tiles)
+            zip(self.entities.iter_grid(), &self.tiles)
                 .all(|(e, t)| !matches!(t, Tile::Button) || e.is_some()) {
             // you win! ...unless there's a dark idol lookin at you,
             // in which case you Very Lose.
-            if matches!(self.entities[player_idx - self.width], Some(Entity::DarkIdol)) {
+            if matches!(self.entities.at(player_idx - self.width), Some(Entity::DarkIdol)) {
                 return Err(GameOver::Lose);
             }
             // ...or if you're supposed to get the chests, and you did not.
@@ -454,7 +355,7 @@ impl Level {
             let mut idx = player_idx.wrapping_add(step);
             while idx < self.tiles.len() {
                 if matches!(self.tiles[idx], Tile::Wall) { break }
-                match self.entities[idx] {
+                match self.entities.at(idx) {
                     Some(Entity::CovetousStatue) => return Err(GameOver::Lose),
                     Some(_) => break,
                     None => (),
@@ -466,7 +367,7 @@ impl Level {
     }
 
     fn golem_step(&mut self, eidx: usize, step: usize) -> GameState<()> {
-        let Some(entity) = self.entities[eidx] else {
+        let Some(entity) = self.entities.at(eidx) else {
             panic!("expected golem to golemstep");
         };
         let mob_step = match entity {
@@ -484,11 +385,10 @@ impl Level {
         };
         let next_eidx = eidx.wrapping_add(mob_step);
         // XXX: boundscheck
-        match self.entities[next_eidx] {
+        match self.entities.at(next_eidx) {
             None => match self.tiles[next_eidx] {
                 Tile::Exit | Tile::Floor | Tile::Button => {
-                    self.entities[eidx] = None;
-                    self.entities[next_eidx] = Some(entity);
+                    self.entities.step(eidx, next_eidx);
                 }
                 Tile::Wall | Tile::Chest => (),
                 Tile::Hole | Tile::PrimedTrap => {
@@ -498,21 +398,19 @@ impl Level {
                     if self.golem_pacifist {
                         return Err(GameOver::Lose);
                     }
-                    self.entities[eidx] = None;
+                    self.entities.lift(eidx);
                 }
                 Tile::Trap => {
                     self.tiles[next_eidx] = Tile::PrimedTrap;
-                    self.entities[eidx] = None;
-                    self.entities[next_eidx] = Some(entity);
+                    self.entities.step(eidx, next_eidx);
                 }
                 Tile::Glass => {
                     self.tiles[next_eidx] = Tile::Hole;
-                    self.entities[eidx] = None;
-                    self.entities[next_eidx] = Some(entity);
+                    self.entities.step(eidx, next_eidx);
                 }
             }
             Some(Entity::Player) => { return Err(GameOver::Lose) }
-            Some(_) => { self.push(next_eidx, mob_step, false)?; }
+            Some(_) => { self.push_entity(next_eidx, mob_step, false)?; }
         }
         Continue
     }
@@ -539,7 +437,7 @@ impl Level {
         let width = level.lines().map(|line| line.len()).max().unwrap();
         let height = level.lines().count();
         let mut tiles = Vec::with_capacity(width * height);
-        let mut entities = vec![None; width * height];
+        let mut entities = Entities::new(width * height);
 
         let mut player_position = None;
         for line in level.lines() {
@@ -580,7 +478,7 @@ impl Level {
                             'K' => Entity::Bull(0),
                             _ => return Err(format!("unexpected chr '{}'", chr as char)),
                         };
-                        entities[tiles.len()] = Some(entity);
+                        entities.add(tiles.len(), entity);
                         match line_it.peek() {
                             Some('̟') => Tile::PrimedTrap,
                             Some('͕') => Tile::Exit,
@@ -635,10 +533,10 @@ impl Level {
         while let Some(spot) = frontier.pop() {
             if !matches!(self.tiles[spot], Tile::PrimedTrap) { continue }
             self.tiles[spot] = Tile::Hole;
-            let Some(entity) = self.entities[spot] else { continue };
+            let Some(entity) = self.entities.at(spot) else { continue };
             match entity {
                 Entity::Player => if !self.void_wings { return Err(GameOver::Lose) }
-                _ => { self.entities[spot].take(); }
+                _ => { self.entities.lift(spot); }
             }
             for step in self.directions() {
                 let next = spot.wrapping_add(step);
@@ -654,14 +552,14 @@ impl Level {
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn test_covetous() {
-    //     let skb = include_str!("levels/covetous.skb");
-    //     let mut level = Level::load(skb).unwrap();
-    //     level.set_wings().set_blade().set_golem_pacifist();
-    //     let path = level.solve().unwrap();
-    //     assert_eq!(path.len(), 40);
-    // }
+    #[test]
+    fn test_covetous() {
+        let skb = include_str!("levels/covetous.skb");
+        let mut level = Level::load(skb).unwrap();
+        level.set_wings().set_blade().set_golem_pacifist();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 40);
+    }
 
     #[test]
     fn test_b005h() {
@@ -744,6 +642,14 @@ mod tests {
         level.must_get_chests();
         let path = level.solve().unwrap();
         assert_eq!(path.len(), 8);
+    }
+
+    #[test]
+    fn test_statue_exit_bonk() {
+        let skb = "######\n#@5͕5H#\n######";
+        let level = Level::load(skb).unwrap();
+        let path = level.solve();
+        assert!(path.is_err());
     }
 }
 
