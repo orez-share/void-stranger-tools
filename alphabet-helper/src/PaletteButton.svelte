@@ -1,7 +1,7 @@
 <script>
   export let name;
   export let palette;
-  export let handleSelect;
+  export let pagePalette;
   palette = {
     white: "#fff",
     black: "#000",
@@ -15,13 +15,16 @@
   `;
 </script>
 
-<div on:click={() => handleSelect(palette)} class="palette-outer" style={paletteStyle}>
+<div on:click={() => pagePalette = palette}
+    class="palette-outer"
+    style={paletteStyle}>
   <div class="palette-inner" style={paletteStyle}>
   </div>
 </div>
 
 <style>
   .palette-outer {
+    cursor: pointer;
     width: fit-content;
     border-width: 8px;
     border-style: solid;

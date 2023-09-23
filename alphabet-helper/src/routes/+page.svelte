@@ -4,13 +4,6 @@
   import VoidLetter from '../VoidLetter.svelte';
   import Letter from '../Letter.svelte';
 
-  const paletteToStyle = palette => `
-    --color-black: ${palette.black};
-    --color-dark: ${palette.dark};
-    --color-light: ${palette.light};
-    --color-white: ${palette.white};
-  `;
-  const setPalette = pal => palette = pal;
   const gray = {
     black: "#000",
     dark: "#808080",
@@ -18,9 +11,16 @@
     white: "#FFF",
   };
 
-  let palette = gray;
-  $: bgColor = `background-color: ${palette.light}`;
-  $: paletteStyle = paletteToStyle(palette);
+  let bgColor;
+  let paletteStyle;
+  let pagePalette = gray;
+  $: bgColor = `background-color: ${pagePalette.light}`;
+  $: paletteStyle = `
+    --color-black: ${pagePalette.black};
+    --color-dark: ${pagePalette.dark};
+    --color-light: ${pagePalette.light};
+    --color-white: ${pagePalette.white};
+  `;
 </script>
 
 <svelte:head>
@@ -28,14 +28,14 @@
 </svelte:head>
 <Body style={bgColor} />
 <div class="palette-row">
-  <PaletteButton handleSelect={setPalette} name="Gray" palette={gray} />
-  <PaletteButton handleSelect={setPalette} name="R***" palette={{dark: "#c10d0c", light: "#f77b57"}} />
-  <PaletteButton handleSelect={setPalette} name="O***" palette={{dark: "#bf5a3c", light: "#f9a140"}} />
-  <PaletteButton handleSelect={setPalette} name="Y***" palette={{dark: "#ba779a", light: "#e9c300"}} />
-  <PaletteButton handleSelect={setPalette} name="G***" palette={{black: "#001413", dark: "#097264", light: "#58dd8a"}} />
-  <PaletteButton handleSelect={setPalette} name="B***" palette={{black: "#162b30", dark: "#087594", light: "#64c8fa"}} />
-  <PaletteButton handleSelect={setPalette} name="I***" palette={{black: "#0e0021", dark: "#754672", light: "#a799cc"}} />
-  <PaletteButton handleSelect={setPalette} name="V***" palette={{black: "#05001e", dark: "#6630a0", light: "#ba81c8"}} />
+  <PaletteButton bind:pagePalette name="Gray" palette={gray} />
+  <PaletteButton bind:pagePalette name="R***" palette={{dark: "#c10d0c", light: "#f77b57"}} />
+  <PaletteButton bind:pagePalette name="O***" palette={{dark: "#bf5a3c", light: "#f9a140"}} />
+  <PaletteButton bind:pagePalette name="Y***" palette={{dark: "#ba779a", light: "#e9c300"}} />
+  <PaletteButton bind:pagePalette name="G***" palette={{black: "#001413", dark: "#097264", light: "#58dd8a"}} />
+  <PaletteButton bind:pagePalette name="B***" palette={{black: "#162b30", dark: "#087594", light: "#64c8fa"}} />
+  <PaletteButton bind:pagePalette name="I***" palette={{black: "#0e0021", dark: "#754672", light: "#a799cc"}} />
+  <PaletteButton bind:pagePalette name="V***" palette={{black: "#05001e", dark: "#6630a0", light: "#ba81c8"}} />
 </div>
 
 <VoidLetter palette={paletteStyle} size="50px" />

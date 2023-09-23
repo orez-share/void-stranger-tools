@@ -8,7 +8,8 @@
   if (pattern != null) pattern = +pattern;
 
   const sizeStyle = `--size: ${size};`;
-  const style = palette + sizeStyle;
+  let style;
+  $: style = palette + sizeStyle;
   const patternBit = idx => {
     if (pattern == null) return null;
     return pattern & (1 << idx) ? CellState.filled : CellState.void;
