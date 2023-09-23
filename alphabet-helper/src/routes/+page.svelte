@@ -67,7 +67,7 @@
   <Letter letter="J" pattern="145" patternRequirement={patternRequirement} palette={paletteStyle} />
   <Letter letter="K" pattern="209" patternRequirement={patternRequirement} palette={paletteStyle} />
   <Letter letter="L" pattern="49" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="M" pattern="114" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="M" pattern="113" patternRequirement={patternRequirement} palette={paletteStyle} />
   <Letter letter="N" pattern="177" patternRequirement={patternRequirement} palette={paletteStyle} />
   <Letter letter="O" pattern="241" patternRequirement={patternRequirement} palette={paletteStyle} />
   <Letter letter="P" pattern="9" patternRequirement={patternRequirement} palette={paletteStyle} />
