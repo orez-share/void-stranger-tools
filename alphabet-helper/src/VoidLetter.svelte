@@ -30,7 +30,7 @@
 
 <style>
   .letter-draw-grid {
-    display: grid;
+    display: inline-grid;
     grid-template-columns: 1fr 1fr 1fr;
     width: max-content;
     border-style: solid;

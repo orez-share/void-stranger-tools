@@ -38,7 +38,9 @@
   <PaletteButton bind:pagePalette name="V***" palette={{black: "#05001e", dark: "#6630a0", light: "#ba81c8"}} />
 </div>
 
-<VoidLetter palette={paletteStyle} size="50px" />
+<div class="draw-container">
+  <VoidLetter palette={paletteStyle} size="50px" />
+</div>
 
 <div class="alphabet-grid">
   <Letter palette={paletteStyle} letter="A" pattern="65" />
@@ -73,6 +75,13 @@
   .palette-row {
     display: grid;
     grid-auto-flow: column;
+    justify-items: center;
+  }
+
+  .draw-container {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 30px;
   }
 
   .alphabet-grid {

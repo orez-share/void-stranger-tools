@@ -5,7 +5,7 @@
   export let pattern;
 </script>
 
-<div class="container">
+<div style={palette} class="container">
   <VoidLetter disabled palette={palette} pattern={pattern} />
   { letter }
 </div>
@@ -13,5 +13,6 @@
 <style>
   .container {
     margin-bottom: 30px;
+    color: var(--color-black);
   }
 </style>
