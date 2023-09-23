@@ -36,15 +36,15 @@
 </script>
 
 <div class="letter-draw-grid" class:faded={faded} style={style}>
-  <GridCell on:update={updateRequirement(0)} disabled={disabled} faded={faded} style={style} state={patternBit(0)} />
-  <GridCell on:update={updateRequirement(1)} disabled={disabled} faded={faded} style={style} state={patternBit(1)} />
-  <GridCell on:update={updateRequirement(2)} disabled={disabled} faded={faded} style={style} state={patternBit(2)} />
-  <GridCell on:update={updateRequirement(3)} disabled={disabled} faded={faded} style={style} state={patternBit(3)} />
-  <div></div>
-  <GridCell on:update={updateRequirement(4)} disabled={disabled} faded={faded} style={style} state={patternBit(4)} />
-  <GridCell on:update={updateRequirement(5)} disabled={disabled} faded={faded} style={style} state={patternBit(5)} />
   <GridCell on:update={updateRequirement(6)} disabled={disabled} faded={faded} style={style} state={patternBit(6)} />
   <GridCell on:update={updateRequirement(7)} disabled={disabled} faded={faded} style={style} state={patternBit(7)} />
+  <GridCell on:update={updateRequirement(5)} disabled={disabled} faded={faded} style={style} state={patternBit(5)} />
+  <GridCell on:update={updateRequirement(4)} disabled={disabled} faded={faded} style={style} state={patternBit(4)} />
+  <div></div>
+  <GridCell on:update={updateRequirement(3)} disabled={disabled} faded={faded} style={style} state={patternBit(3)} />
+  <GridCell on:update={updateRequirement(2)} disabled={disabled} faded={faded} style={style} state={patternBit(2)} />
+  <GridCell on:update={updateRequirement(0)} disabled={disabled} faded={faded} style={style} state={patternBit(0)} />
+  <GridCell on:update={updateRequirement(1)} disabled={disabled} faded={faded} style={style} state={patternBit(1)} />
 </div>
 
 <style>

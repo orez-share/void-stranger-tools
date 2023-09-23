@@ -55,32 +55,32 @@
 </div>
 
 <div class="alphabet-grid">
-  <Letter letter="A" pattern="65" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="B" pattern="129" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="C" pattern="193" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="D" pattern="33" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="E" pattern="97" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="F" pattern="161" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="G" pattern="225" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="H" pattern="17" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="I" pattern="81" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="J" pattern="145" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="K" pattern="209" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="L" pattern="49" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="M" pattern="113" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="N" pattern="177" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="O" pattern="241" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="P" pattern="9" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Q" pattern="73" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="R" pattern="137" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="S" pattern="201" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="T" pattern="41" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="U" pattern="105" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="V" pattern="169" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="W" pattern="233" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="X" pattern="25" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Y" pattern="89" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Z" pattern="153" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="A" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="B" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="C" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="D" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="E" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="F" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="G" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="H" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="I" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="J" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="K" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="L" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="M" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="N" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="O" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="P" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="Q" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="R" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="S" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="T" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="U" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="V" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="W" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="X" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="Y" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="Z" patternRequirement={patternRequirement} palette={paletteStyle} />
 </div>
 
 <style>

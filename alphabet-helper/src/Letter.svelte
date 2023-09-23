@@ -2,10 +2,9 @@
   import VoidLetter from './VoidLetter.svelte';
   export let palette;
   export let letter;
-  export let pattern;
   export let patternRequirement;
 
-  pattern = +pattern;
+  let pattern = letter.charCodeAt(0);
 
   let faded;
   $: faded = (
