@@ -4,6 +4,8 @@
   export let pattern = null;
   export let palette;
   export let disabled = false;
+  export let patternRequirement = null;
+  export let faded = false;
 
   if (pattern != null) pattern = +pattern;
 
@@ -14,18 +16,35 @@
     if (pattern == null) return null;
     return pattern & (1 << idx) ? CellState.filled : CellState.void;
   }
+  const updateRequirement = bitIdx => evt => {
+    const bit = 1 << bitIdx;
+    switch (evt.detail.fill) {
+      case CellState.unknown:
+        patternRequirement.ones &= ~bit;
+        patternRequirement.zeroes &= ~bit;
+        break;
+      case CellState.void:
+        patternRequirement.ones &= ~bit;
+        patternRequirement.zeroes |= bit;
+        break;
+      case CellState.filled:
+        patternRequirement.ones |= bit;
+        patternRequirement.zeroes &= ~bit;
+        break;
+    }
+  }
 </script>
 
-<div class="letter-draw-grid" style={style}>
-  <GridCell disabled={disabled} style={style} state={patternBit(0)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(1)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(2)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(3)} />
+<div class="letter-draw-grid" class:faded={faded} style={style}>
+  <GridCell on:update={updateRequirement(0)} disabled={disabled} faded={faded} style={style} state={patternBit(0)} />
+  <GridCell on:update={updateRequirement(1)} disabled={disabled} faded={faded} style={style} state={patternBit(1)} />
+  <GridCell on:update={updateRequirement(2)} disabled={disabled} faded={faded} style={style} state={patternBit(2)} />
+  <GridCell on:update={updateRequirement(3)} disabled={disabled} faded={faded} style={style} state={patternBit(3)} />
   <div></div>
-  <GridCell disabled={disabled} style={style} state={patternBit(4)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(5)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(6)} />
-  <GridCell disabled={disabled} style={style} state={patternBit(7)} />
+  <GridCell on:update={updateRequirement(4)} disabled={disabled} faded={faded} style={style} state={patternBit(4)} />
+  <GridCell on:update={updateRequirement(5)} disabled={disabled} faded={faded} style={style} state={patternBit(5)} />
+  <GridCell on:update={updateRequirement(6)} disabled={disabled} faded={faded} style={style} state={patternBit(6)} />
+  <GridCell on:update={updateRequirement(7)} disabled={disabled} faded={faded} style={style} state={patternBit(7)} />
 </div>
 
 <style>
@@ -43,6 +62,15 @@
     border-left-color: var(--color-dark);
     border-bottom-color: var(--color-white);
     border-right-color: var(--color-white);
+    color: var(--color-black);
+  }
+
+  .letter-draw-grid.faded {
+    background-color: var(--color-dark);
+    border-top-color: var(--color-black);
+    border-left-color: var(--color-black);
+    border-bottom-color: var(--color-light);
+    border-right-color: var(--color-light);
     color: var(--color-black);
   }
 </style>

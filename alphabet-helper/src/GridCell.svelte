@@ -7,21 +7,27 @@
 </script>
 
 <script>
+  import { createEventDispatcher } from 'svelte';
   export let style;
   export let state = CellState.unknown;
   export let disabled = false;
+  export let faded = false;
+
+  const dispatch = createEventDispatcher();
 
   let fill = state ?? CellState.unknown;
   const cycleFill = () => {
     if (disabled) return;
     fill += 2;
     fill %= 3;
+    dispatch('update', { fill });
   }
 </script>
 
 <div style={style} on:click={cycleFill}
   class="letter-grid-cell"
   class:disabled={disabled}
+  class:faded={faded}
   class:unknown={fill === CellState.unknown}
   class:filled={fill === CellState.filled}
   class:void={fill === CellState.void}
@@ -39,6 +45,10 @@
 
   .letter-grid-cell:not(.disabled) {
     cursor: pointer;
+  }
+
+  .letter-grid-cell.filled.faded {
+    background-color: var(--color-light);
   }
 
   .letter-grid-cell.filled {
