@@ -1,7 +1,7 @@
 <script>
   import { Body } from 'svelte-body';
   import PaletteButton from '../PaletteButton.svelte';
-  import GridCell from '../GridCell.svelte';
+  import VoidLetter from '../VoidLetter.svelte';
   import Letter from '../Letter.svelte';
 
   const paletteToStyle = palette => `
@@ -38,68 +38,41 @@
   <PaletteButton handleSelect={setPalette} name="V***" palette={{black: "#05001e", dark: "#6630a0", light: "#ba81c8"}} />
 </div>
 
-<div class="letter-draw-grid" style={paletteStyle}>
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-  <div></div>
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-  <GridCell palette={paletteStyle} />
-</div>
+<VoidLetter palette={paletteStyle} size="50px" />
 
 <div class="alphabet-grid">
   <Letter palette={paletteStyle} letter="A" pattern="65" />
-  <Letter palette={paletteStyle} letter="B" pattern="65" />
-  <Letter palette={paletteStyle} letter="C" pattern="65" />
-  <Letter palette={paletteStyle} letter="D" pattern="65" />
-  <Letter palette={paletteStyle} letter="E" pattern="65" />
-  <Letter palette={paletteStyle} letter="F" pattern="65" />
-  <Letter palette={paletteStyle} letter="G" pattern="65" />
-  <Letter palette={paletteStyle} letter="H" pattern="65" />
-  <Letter palette={paletteStyle} letter="I" pattern="65" />
-  <Letter palette={paletteStyle} letter="J" pattern="65" />
-  <Letter palette={paletteStyle} letter="K" pattern="65" />
-  <Letter palette={paletteStyle} letter="L" pattern="65" />
-  <Letter palette={paletteStyle} letter="M" pattern="65" />
-  <Letter palette={paletteStyle} letter="N" pattern="65" />
-  <Letter palette={paletteStyle} letter="O" pattern="65" />
-  <Letter palette={paletteStyle} letter="P" pattern="65" />
-  <Letter palette={paletteStyle} letter="Q" pattern="65" />
-  <Letter palette={paletteStyle} letter="R" pattern="65" />
-  <Letter palette={paletteStyle} letter="S" pattern="65" />
-  <Letter palette={paletteStyle} letter="T" pattern="65" />
-  <Letter palette={paletteStyle} letter="U" pattern="65" />
-  <Letter palette={paletteStyle} letter="V" pattern="65" />
-  <Letter palette={paletteStyle} letter="W" pattern="65" />
-  <Letter palette={paletteStyle} letter="X" pattern="65" />
-  <Letter palette={paletteStyle} letter="Y" pattern="65" />
-  <Letter palette={paletteStyle} letter="Z" pattern="65" />
+  <Letter palette={paletteStyle} letter="B" pattern="129" />
+  <Letter palette={paletteStyle} letter="C" pattern="193" />
+  <Letter palette={paletteStyle} letter="D" pattern="33" />
+  <Letter palette={paletteStyle} letter="E" pattern="97" />
+  <Letter palette={paletteStyle} letter="F" pattern="161" />
+  <Letter palette={paletteStyle} letter="G" pattern="225" />
+  <Letter palette={paletteStyle} letter="H" pattern="17" />
+  <Letter palette={paletteStyle} letter="I" pattern="81" />
+  <Letter palette={paletteStyle} letter="J" pattern="145" />
+  <Letter palette={paletteStyle} letter="K" pattern="209" />
+  <Letter palette={paletteStyle} letter="L" pattern="49" />
+  <Letter palette={paletteStyle} letter="M" pattern="114" />
+  <Letter palette={paletteStyle} letter="N" pattern="177" />
+  <Letter palette={paletteStyle} letter="O" pattern="241" />
+  <Letter palette={paletteStyle} letter="P" pattern="9" />
+  <Letter palette={paletteStyle} letter="Q" pattern="73" />
+  <Letter palette={paletteStyle} letter="R" pattern="137" />
+  <Letter palette={paletteStyle} letter="S" pattern="201" />
+  <Letter palette={paletteStyle} letter="T" pattern="41" />
+  <Letter palette={paletteStyle} letter="U" pattern="105" />
+  <Letter palette={paletteStyle} letter="V" pattern="169" />
+  <Letter palette={paletteStyle} letter="W" pattern="233" />
+  <Letter palette={paletteStyle} letter="X" pattern="25" />
+  <Letter palette={paletteStyle} letter="Y" pattern="89" />
+  <Letter palette={paletteStyle} letter="Z" pattern="153" />
 </div>
 
 <style>
   .palette-row {
     display: grid;
     grid-auto-flow: column;
-  }
-
-  .letter-draw-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    width: max-content;
-    border-style: solid;
-
-    grid-gap: 50px;
-    border-width: 50px;
-
-    background-color: var(--color-light);
-    border-top-color: var(--color-dark);
-    border-left-color: var(--color-dark);
-    border-bottom-color: var(--color-white);
-    border-right-color: var(--color-white);
-    color: var(--color-black);
   }
 
   .alphabet-grid {

@@ -1,31 +1,43 @@
-<script>
-  export let paletteStyle;
-  const UNKNOWN = 0;
-  const FILLED = 1;
-  const VOID = 2;
+<script context="module">
+  export const CellState = {
+    void: 0,
+    filled: 1,
+    unknown: 2,
+  };
+</script>
 
-  let fill = 0;
+<script>
+  export let style;
+  export let state = CellState.unknown;
+  export let disabled = false;
+
+  let fill = state ?? CellState.unknown;
   const cycleFill = () => {
-    fill += 1;
+    if (disabled) return;
+    fill += 2;
     fill %= 3;
   }
 </script>
 
-<div style={paletteStyle} on:click={cycleFill}
+<div style={style} on:click={cycleFill}
   class="letter-grid-cell"
-  class:unknown={fill === UNKNOWN}
-  class:filled={fill === FILLED}
-  class:void={fill === VOID}
+  class:disabled={disabled}
+  class:unknown={fill === CellState.unknown}
+  class:filled={fill === CellState.filled}
+  class:void={fill === CellState.void}
 ></div>
 
 <style>
   .letter-grid-cell {
-    width: 50px;
-    height: 50px;
+    width: var(--size);
+    height: var(--size);
     font-family: Arial;
     user-select: none;
     text-align: center;
     font-size: 40px;
+  }
+
+  .letter-grid-cell:not(.disabled) {
     cursor: pointer;
   }
 
