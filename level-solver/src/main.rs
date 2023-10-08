@@ -670,9 +670,9 @@ fn play(mut level: Level, commands: &str) -> GameState<Level> {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/b149h.skb");
+    let skb = include_str!("levels/😈??.skb");
     let mut level = Level::load(skb)?;
-    level.must_get_chests();
+    level.set_wings().set_blade();
     // match play(level, "DSSSAWDAWZSZS") {
     //     Err(GameOver::Win) => println!("Win!"),
     //     e @ Err(_) => return Err(format!("{e:?}")),
