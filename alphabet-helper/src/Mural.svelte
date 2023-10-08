@@ -25,14 +25,19 @@
     icon: grayIcon,
   };
 
+  // number of rows (and cols) in the brand
+  const cellRows = 6;
+
+  // these are in px
   const brandX = 88; // he's been using brand x!
   const brandY = 24;
-  const brandSize = 48;
+  const cellSize = 8;
+  const brandSize = cellSize * cellRows;
 
   const posToCoord = (position) => {
     const pos = Number(position);
-    const cx = 5 - Math.floor(pos / 6);
-    const cy = pos % 6;
+    const cx = cellRows - 1 - Math.floor(pos / cellRows);
+    const cy = pos % cellRows;
     return {cx, cy}
   }
 
@@ -50,8 +55,8 @@
     const pattern = chr ? chr.charCodeAt(0) : 0;
     const {cx, cy} = posToCoord(position);
 
-    const x = brandX + cx * 8;
-    const y = brandY + cy * 8;
+    const x = brandX + cx * cellSize;
+    const y = brandY + cy * cellSize;
     // clear area
     context.fillStyle = gray.light;
     context.fillRect(x, y, 7, 7);
@@ -102,6 +107,31 @@
     }
   }
 
+  const absToCanvas = (evt) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: Math.floor((evt.clientX - rect.left) / scale),
+      y: Math.floor((evt.clientY - rect.top) / scale),
+    };
+  }
+
+  const handleMousemove = (evt) => {
+    const offset = absToCanvas(evt);
+    // console.log(offset);
+  }
+
+  const handleClick = (evt) => {
+    let {x, y} = absToCanvas(evt);
+    x -= brandX;
+    y -= brandY;
+    if (0 <= x && x < brandSize && 0 <= y && y < brandSize) {
+      const cx = cellRows - 1 - Math.floor(x / cellSize);
+      const cy = Math.floor(y / cellSize);
+      const pos = BigInt(cx * cellRows + cy);
+      brandPattern ^= 1n << pos;
+    }
+  }
+
   $: redraw(text, brandPattern);
 
   onMount(() => {
@@ -122,6 +152,8 @@
     width="224px"
     height="144px"
     bind:this={canvas}
+    on:mousemove={handleMousemove}
+    on:click={handleClick}
     style="--scale: {scale};"
   />
 </div>
