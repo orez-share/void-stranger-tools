@@ -8,6 +8,8 @@
   let canvas;
   let context;
 
+  const scale = 4;
+
   // JS numbers have enough precision to keep a 36 bit number correctly,
   // but its bitwise operators truncate to a signed 32 bit number
   // because JS is a spiteful language.
@@ -116,12 +118,17 @@
 </script>
 
 <div>
-  <canvas width="224px" height="144px" bind:this={canvas} />
+  <canvas
+    width="224px"
+    height="144px"
+    bind:this={canvas}
+    style="--scale: {scale};"
+  />
 </div>
 
 <style>
   canvas {
     image-rendering: pixelated;
-    width: 896px;
+    width: calc(var(--scale) * 224px);
   }
 </style>
