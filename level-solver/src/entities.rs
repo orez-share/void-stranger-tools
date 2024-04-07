@@ -12,20 +12,21 @@ pub enum Entity {
     DarkIdol,
     Egg,
     Bull(usize),
+    Teeth,
 }
 
 impl Entity {
     pub fn is_enemy(&self) -> bool {
         use Entity::*;
-        matches!(self, Golem | GolemX | GolemY | GolemXY | Hand | Bull(_))
+        matches!(self, Golem | GolemX | GolemY | GolemXY | Hand | Bull(_) | Teeth)
     }
 
     pub fn is_squishable(&self) -> bool {
-        matches!(self, Entity::Hand | Entity::Bull(_))
+        matches!(self, Entity::Hand | Entity::Bull(_) | Entity::Teeth)
     }
 
     pub fn is_stabbable(&self) -> bool {
-        matches!(self, Entity::Hand | Entity::Bull(_))
+        matches!(self, Entity::Hand | Entity::Bull(_) | Entity::Teeth)
     }
 
     pub fn is_pushable(&self) -> bool {

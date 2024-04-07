@@ -71,6 +71,7 @@ impl fmt::Debug for Level {
                         Entity::Hand => 'H',
                         Entity::Egg => 'o',
                         Entity::Bull(_) => 'K',
+                        Entity::Teeth => 'e',
                     })?;
                     match tile {
                         Tile::PrimedTrap => write!(f, "̟")?,
@@ -162,7 +163,7 @@ impl Level {
         let mut level = self.clone();
         let player_idx = self.entities
             .position(|e| matches!(e, Entity::Player))
-            .unwrap();
+            .expect("player is missing lol whoops");
         let mut next_player_idx = player_idx.wrapping_add(step);
         if next_player_idx >= self.tiles.len() { unimplemented!("OOB"); }
         level.player_facing = step;
@@ -207,7 +208,11 @@ impl Level {
             }
         }
 
-        level.is_zap(next_player_idx)?;
+        for effect in level.on_see_effects(next_player_idx)? {
+            let Effect::Walk { direction, idx } = effect;
+            level.step_enemy(idx, direction)?;
+        }
+
         // XXX: enemy logic could be very complicated.
         // in particular, I don't know how turn order necessarily works out.
         // we'll do our best for now.
@@ -227,7 +232,7 @@ impl Level {
         level.check_escape(next_player_idx)?;
 
         // covetous check
-        level.is_zap(next_player_idx)?;
+        level.on_see_effects(next_player_idx)?;
         Ok(level)
     }
 
@@ -235,7 +240,7 @@ impl Level {
         let mut level = self.clone();
         let player_idx = self.entities
             .position(|e| matches!(e, Entity::Player))
-            .unwrap();
+            .expect("player is missing lol whoops");
         let next_player_idx = player_idx.wrapping_add(self.player_facing);
 
         if next_player_idx >= self.tiles.len() {
@@ -252,8 +257,6 @@ impl Level {
                 Entity::RagingStatue => { return Err(GameOver::Noop); } // doesn't advance the game
                 _ => panic!("{ent:?}"),
             }
-            level.is_zap(player_idx)?;
-            Ok(level)
         } else { // staff lift
             match level.tiles[next_player_idx] {
                 Tile::Hole => {
@@ -262,15 +265,13 @@ impl Level {
                     if level.alert_devious_statue() {
                         return Err(GameOver::Lose);
                     }
-                    Ok(level)
                 }
-                Tile::Wall => Err(GameOver::Noop),
+                Tile::Wall => { return Err(GameOver::Noop) }
                 Tile::Chest => if level.player_facing == level.up() {
                     // open the chest!
                     level.player_facing = level.down();
                     level.tiles[next_player_idx] = Tile::Wall;
-                    Ok(level)
-                } else { Err(GameOver::Noop) }
+                } else { return Err(GameOver::Noop) }
                 tile => {
                     if level.held_tile.is_some() { return Err(GameOver::Noop )}
                     if level.alert_devious_statue() {
@@ -278,17 +279,21 @@ impl Level {
                     }
                     level.held_tile = Some(tile);
                     level.tiles[next_player_idx] = Tile::Hole;
-                    Ok(level)
                 }
             }
         }
+        for effect in level.on_see_effects(player_idx)? {
+            let Effect::Walk { direction, idx } = effect;
+            level.step_enemy(idx, direction)?;
+        }
+        Ok(level)
     }
 
     // XXX: `is_player` flag is kinda gross but ᖍ(∙⟞∙)ᖌ
     fn push_entity(&mut self, idx: usize, direction: usize, is_player: bool) -> GameState<()> {
         match self.entities.at(idx).unwrap() {
             Entity::Player => panic!("???"),
-            Entity::Hand | Entity::Golem | Entity::GolemX | Entity::GolemY | Entity::GolemXY | Entity::Bull(_) => {
+            Entity::Hand | Entity::Golem | Entity::GolemX | Entity::GolemY | Entity::GolemXY | Entity::Bull(_) | Entity::Teeth => {
                 if is_player { Err(GameOver::Lose) }
                 else { Continue }
             }
@@ -350,20 +355,28 @@ impl Level {
         Ok(())
     }
 
-    fn is_zap(&self, player_idx: usize) -> GameState<()> {
+    fn on_see_effects(&self, player_idx: usize) -> GameState<Vec<Effect>> {
+        let mut effects = Vec::new();
         for step in self.directions() {
             let mut idx = player_idx.wrapping_add(step);
             while idx < self.tiles.len() {
                 if matches!(self.tiles[idx], Tile::Wall) { break }
                 match self.entities.at(idx) {
                     Some(Entity::CovetousStatue) => return Err(GameOver::Lose),
+                    // Some(Entity::Bull(0)) =>
+                    Some(Entity::Teeth) => {
+                        effects.push(Effect::Walk {
+                            idx,
+                            direction: 0_usize.wrapping_sub(step),
+                        });
+                    }
                     Some(_) => break,
                     None => (),
                 }
                 idx = idx.wrapping_add(step);
             }
         }
-        Continue
+        Ok(effects)
     }
 
     fn golem_step(&mut self, eidx: usize, step: usize) -> GameState<()> {
@@ -411,6 +424,35 @@ impl Level {
             }
             Some(Entity::Player) => { return Err(GameOver::Lose) }
             Some(_) => { self.push_entity(next_eidx, mob_step, false)?; }
+        }
+        Continue
+    }
+
+    fn step_enemy(&mut self, eidx: usize, mob_step: usize) -> GameState<()> {
+        let Some(_) = self.entities.at(eidx) else {
+            panic!("expected enemy to step");
+        };
+        let next_eidx = eidx.wrapping_add(mob_step);
+        match self.entities.at(next_eidx) {
+            None => match self.tiles[next_eidx] {
+                Tile::Exit | Tile::Floor | Tile::Button => {
+                    self.entities.step(eidx, next_eidx);
+                }
+                Tile::Wall | Tile::Chest => (),
+                Tile::Hole | Tile::PrimedTrap => {
+                    self.entities.lift(eidx);
+                }
+                Tile::Trap => {
+                    self.tiles[next_eidx] = Tile::PrimedTrap;
+                    self.entities.step(eidx, next_eidx);
+                }
+                Tile::Glass => {
+                    self.tiles[next_eidx] = Tile::Hole;
+                    self.entities.step(eidx, next_eidx);
+                }
+            }
+            Some(Entity::Player) => { return Err(GameOver::Lose) }
+            Some(_) => (),
         }
         Continue
     }
@@ -476,6 +518,7 @@ impl Level {
                             'b' => Entity::GolemXY,
                             'o' => Entity::Egg,
                             'K' => Entity::Bull(0),
+                            'e' => Entity::Teeth,
                             _ => return Err(format!("unexpected chr '{}'", chr as char)),
                         };
                         entities.add(tiles.len(), entity);
@@ -545,6 +588,13 @@ impl Level {
             }
         }
         Continue
+    }
+}
+
+enum Effect {
+    Walk {
+        idx: usize,
+        direction: usize,
     }
 }
 
@@ -651,6 +701,14 @@ mod tests {
         let path = level.solve();
         assert!(path.is_err());
     }
+
+    // #[test]
+    // fn test_e022() {
+    //     let skb = include_str!("levels/e022.skb");
+    //     let level = Level::load(skb).unwrap();
+    //     let path = level.solve().unwrap();
+    //     assert_eq!(path.len(), 8);
+    // }
 }
 
 fn play(mut level: Level, commands: &str) -> GameState<Level> {
@@ -670,10 +728,10 @@ fn play(mut level: Level, commands: &str) -> GameState<Level> {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/😈??.skb");
+    let skb = include_str!("levels/e022.skb");
     let mut level = Level::load(skb)?;
-    level.set_wings().set_blade();
-    // match play(level, "DSSSAWDAWZSZS") {
+    // level.set_wings().set_blade();
+    // match play(level, "DDDDDDWAAAAAAAAAAWW") {
     //     Err(GameOver::Win) => println!("Win!"),
     //     e @ Err(_) => return Err(format!("{e:?}")),
     //     Ok(_) => (),

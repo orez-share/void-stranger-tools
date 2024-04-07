@@ -32,6 +32,7 @@ eg:
 | `@` | player |
 | `8` | covetous statue |
 | `7` | devious statue |
+| `5` | raging statue |
 | `q` | golem |
 | `p` | golem (x-mirror) |
 | `d` | golem (y-mirror) |
@@ -39,3 +40,4 @@ eg:
 | `H` | hand |
 | `o` | egg |
 | `K` | bull |
+| `e` | teeth |
