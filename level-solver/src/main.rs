@@ -31,6 +31,7 @@ enum Tile {
     Button,
     Glass,
     Chest,
+    DeathFloor,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -91,6 +92,7 @@ impl fmt::Debug for Level {
                         Tile::Button => 'x',
                         Tile::Glass => '^',
                         Tile::Chest => ')',
+                        Tile::DeathFloor => '%',
                     })?;
                 };
             }
@@ -205,6 +207,9 @@ impl Level {
                     level.entities.step(player_idx, next_player_idx);
                     level.tiles[next_player_idx] = Tile::Hole; // XXX: not exactly right, but close enough.
                 }
+                Tile::DeathFloor => {
+                    return Err(GameOver::Lose); // haha oops
+                }
             }
         }
 
@@ -306,7 +311,7 @@ impl Level {
                 let can_squish = self.entities.at(dest).map_or(true, |e| e.is_squishable());
                 match self.tiles[dest] {
                     Tile::Wall => (),
-                    Tile::Hole => {
+                    Tile::Hole | Tile::DeathFloor => {
                         self.entities.lift(idx);
                         if self.angry_statues > 0 { todo!() }
                     }
@@ -404,7 +409,7 @@ impl Level {
                     self.entities.step(eidx, next_eidx);
                 }
                 Tile::Wall | Tile::Chest => (),
-                Tile::Hole | Tile::PrimedTrap => {
+                Tile::Hole | Tile::PrimedTrap | Tile::DeathFloor => {
                     // we're already struggling with performance.
                     // on many levels, it's clear that this case means Game Over.
                     // XXX: maybe also do some precompute to try to identify these.
@@ -439,7 +444,7 @@ impl Level {
                     self.entities.step(eidx, next_eidx);
                 }
                 Tile::Wall | Tile::Chest => (),
-                Tile::Hole | Tile::PrimedTrap => {
+                Tile::Hole | Tile::PrimedTrap | Tile::DeathFloor => {
                     self.entities.lift(eidx);
                 }
                 Tile::Trap => {
@@ -495,6 +500,7 @@ impl Level {
                     '>' => Tile::Exit,
                     '^' => Tile::Glass,
                     ')' => Tile::Chest,
+                    '%' => Tile::DeathFloor,
                     _ => {
                         let entity = match chr {
                             '@' => {
@@ -728,7 +734,7 @@ fn play(mut level: Level, commands: &str) -> GameState<Level> {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/e022.skb");
+    let skb = include_str!("levels/e023.skb");
     let mut level = Level::load(skb)?;
     // level.set_wings().set_blade();
     // match play(level, "DDDDDDWAAAAAAAAAAWW") {

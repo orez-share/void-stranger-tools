@@ -25,6 +25,7 @@ eg:
 | `>` | ◌͕ | exit |
 | `x` | ◌͓ | button |
 | `^` | ◌̭ | glass |
+| `%` | *\<none>* | death floor |
 
 ### Entities
 | Symbol | Name |
