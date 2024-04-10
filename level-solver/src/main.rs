@@ -63,6 +63,8 @@ impl fmt::Debug for Level {
                         Entity::Player => '@',
                         Entity::CovetousStatue => '8',
                         Entity::DeviousStatue => '7',
+                        Entity::FeebleStatue(true) => '6',
+                        Entity::FeebleStatue(false) => '#',
                         Entity::RagingStatue => '5',
                         Entity::DarkIdol => '4',
                         Entity::Golem => 'q',
@@ -259,6 +261,7 @@ impl Level {
                 Entity::DeviousStatue |
                 Entity::Egg |
                 Entity::DarkIdol |
+                Entity::FeebleStatue(_) |
                 Entity::RagingStatue => { return Err(GameOver::Noop); } // doesn't advance the game
                 _ => panic!("{ent:?}"),
             }
@@ -297,6 +300,7 @@ impl Level {
     // XXX: `is_player` flag is kinda gross but ᖍ(∙⟞∙)ᖌ
     fn push_entity(&mut self, idx: usize, direction: usize, is_player: bool) -> GameState<()> {
         match self.entities.at(idx).unwrap() {
+            Entity::FeebleStatue(false) => Continue,
             Entity::Player => panic!("???"),
             Entity::Hand | Entity::Golem | Entity::GolemX | Entity::GolemY | Entity::GolemXY | Entity::Bull(_) | Entity::Teeth => {
                 if is_player { Err(GameOver::Lose) }
@@ -305,6 +309,7 @@ impl Level {
             Entity::CovetousStatue |
             Entity::DeviousStatue |
             Entity::Egg |
+            Entity::FeebleStatue(true) |
             Entity::DarkIdol |
             Entity::RagingStatue => {
                 let dest = idx.wrapping_add(direction);
@@ -317,10 +322,18 @@ impl Level {
                     }
                     Tile::PrimedTrap => if can_squish {
                         self.entities.step(idx, dest);
+                        self.entities.at(dest).unwrap().on_push();
                         self.drop_primed_traps(dest)?;
+                    }
+                    Tile::Trap => {
+                        assert!(can_squish);
+                        self.tiles[dest] = Tile::PrimedTrap;
+                        self.entities.step(idx, dest);
+                        self.entities.at_mut(dest).unwrap().on_push();
                     }
                     _ => if can_squish {
                         self.entities.step(idx, dest);
+                        self.entities.at_mut(dest).unwrap().on_push();
                     }
                 }
                 Continue
@@ -515,6 +528,7 @@ impl Level {
                             }
                             '4' => Entity::DarkIdol,
                             '5' => Entity::RagingStatue,
+                            '6' => Entity::FeebleStatue(true),
                             '7' => Entity::DeviousStatue,
                             '8' => Entity::CovetousStatue,
                             'H' => Entity::Hand,
@@ -708,6 +722,15 @@ mod tests {
         assert!(path.is_err());
     }
 
+    #[test]
+    fn test_e022() {
+        let skb = include_str!("levels/e022.skb");
+        let mut level = Level::load(skb).unwrap();
+        level.must_get_chests();
+        let path = level.solve().unwrap();
+        assert_eq!(path.len(), 8);
+    }
+
     // #[test]
     // fn test_e022() {
     //     let skb = include_str!("levels/e022.skb");
@@ -734,10 +757,10 @@ fn play(mut level: Level, commands: &str) -> GameState<Level> {
 }
 
 fn main() -> Result<()> {
-    let skb = include_str!("levels/e023.skb");
+    let skb = include_str!("levels/e024.skb");
     let mut level = Level::load(skb)?;
     // level.set_wings().set_blade();
-    // match play(level, "DDDDDDWAAAAAAAAAAWW") {
+    // match play(level, "WWW") {
     //     Err(GameOver::Win) => println!("Win!"),
     //     e @ Err(_) => return Err(format!("{e:?}")),
     //     Ok(_) => (),

@@ -7,6 +7,7 @@ pub enum Entity {
     GolemXY,
     Hand,
     CovetousStatue,
+    FeebleStatue(bool), // can move
     DeviousStatue,
     RagingStatue,
     DarkIdol,
@@ -31,7 +32,13 @@ impl Entity {
 
     pub fn is_pushable(&self) -> bool {
         use Entity::*;
-        matches!(self, Egg | DeviousStatue | CovetousStatue | DarkIdol | RagingStatue)
+        matches!(self, Egg | DeviousStatue | CovetousStatue | DarkIdol | RagingStatue | FeebleStatue(true))
+    }
+
+    pub fn on_push(&mut self) {
+        if matches!(self, Entity::FeebleStatue(true)) {
+            *self = Entity::FeebleStatue(false);
+        }
     }
 }
 
@@ -115,6 +122,10 @@ impl Entities {
 
     pub fn at(&self, idx: usize) -> Option<Entity> {
         Some(self.grid[idx]?.1)
+    }
+
+    pub fn at_mut(&mut self, idx: usize) -> Option<&mut Entity> {
+        Some(&mut self.grid[idx].as_mut()?.1)
     }
 
     pub fn retain<F: Fn(Entity) -> bool>(&mut self, pred: F) {
