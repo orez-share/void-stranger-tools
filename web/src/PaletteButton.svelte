@@ -17,7 +17,8 @@
 
 <div on:click={() => pagePalette.set(palette)}
     class="palette-outer"
-    style={paletteStyle}>
+    style={paletteStyle}
+    title={name}>
   <div class="palette-inner" style={paletteStyle}>
   </div>
 </div>
