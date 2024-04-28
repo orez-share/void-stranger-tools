@@ -43,12 +43,6 @@
 </div>
 
 <style>
-  .palette-row {
-    display: grid;
-    grid-auto-flow: column;
-    justify-items: center;
-  }
-
   .draw-container {
     text-align: center;
     margin-top: 30px;
