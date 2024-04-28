@@ -14,7 +14,7 @@
 </script>
 
 <div style={palette} class="container">
-  <VoidLetter faded={faded} disabled palette={palette} pattern={pattern} />
+  <VoidLetter {faded} disabled {palette} {pattern} />
   { letter }
 </div>
 

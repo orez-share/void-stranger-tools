@@ -24,10 +24,10 @@
   }
 </script>
 
-<div style={style} on:click={cycleFill}
+<div {style} on:click={cycleFill}
   class="letter-grid-cell"
-  class:disabled={disabled}
-  class:faded={faded}
+  class:disabled
+  class:faded
   class:unknown={fill === CellState.unknown}
   class:filled={fill === CellState.filled}
   class:void={fill === CellState.void}
