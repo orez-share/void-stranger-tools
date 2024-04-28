@@ -36,12 +36,12 @@
   }
 
   const clear = () => {
-    context.fillStyle = pagePalette.light;
+    context.fillStyle = $pagePalette.light;
     context.fillRect(brandX, brandY, brandSize, brandSize);
   }
 
   const drawBit = (set, x, y) => {
-    context.fillStyle = set ? pagePalette.white : pagePalette.dark;
+    context.fillStyle = set ? $pagePalette.white : $pagePalette.dark;
     context.fillRect(x, y, 1, 1);
   }
 
@@ -52,13 +52,13 @@
     const x = brandX + cx * cellSize;
     const y = brandY + cy * cellSize;
     // clear area
-    context.fillStyle = pagePalette.light;
+    context.fillStyle = $pagePalette.light;
     context.fillRect(x, y, 7, 7);
     // surrounding bevel
-    context.fillStyle = pagePalette.white;
+    context.fillStyle = $pagePalette.white;
     context.fillRect(x + 6, y, 1, 7);
     context.fillRect(x, y + 6, 7, 1);
-    context.fillStyle = pagePalette.dark;
+    context.fillStyle = $pagePalette.dark;
     context.fillRect(x, y, 7, 1);
     context.fillRect(x, y, 1, 7);
     // bits
@@ -91,10 +91,10 @@
     let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     let data = imageData.data;
     let lookup = {
-      0x00: hexToRgb(pagePalette.black),
-      0x80: hexToRgb(pagePalette.dark),
-      0xC0: hexToRgb(pagePalette.light),
-      0xFF: hexToRgb(pagePalette.white),
+      0x00: hexToRgb($pagePalette.black),
+      0x80: hexToRgb($pagePalette.dark),
+      0xC0: hexToRgb($pagePalette.light),
+      0xFF: hexToRgb($pagePalette.white),
     };
     for (let i = 0; i < data.length; i += 4) {
       let {r, g, b} = lookup[grayImage[i]];
@@ -160,7 +160,7 @@
     }
   }
 
-  $: redraw(text, brandPattern, pagePalette);
+  $: redraw(text, brandPattern, $pagePalette);
 
   onMount(() => {
     context = canvas.getContext('2d');
@@ -171,7 +171,7 @@
       context.drawImage(image, 0, 0);
       context.lineWidth = 1;
       grayImage = context.getImageData(0, 0, canvas.width, canvas.height).data;
-      redraw(text, brandPattern, pagePalette);
+      redraw(text, brandPattern, $pagePalette);
     }
   })
 </script>

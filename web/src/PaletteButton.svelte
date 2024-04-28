@@ -15,7 +15,7 @@
   `;
 </script>
 
-<div on:click={() => pagePalette = palette}
+<div on:click={() => pagePalette.set(palette)}
     class="palette-outer"
     style={paletteStyle}>
   <div class="palette-inner" style={paletteStyle}>
