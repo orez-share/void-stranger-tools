@@ -619,7 +619,7 @@ enum Effect {
 }
 
 #[cfg(test)]
-mod tests {
+mod level_tests {
     use super::*;
 
     #[test]
@@ -714,6 +714,19 @@ mod tests {
         assert_eq!(path.len(), 8);
     }
 
+    // #[test]
+    // fn test_e022() {
+    //     let skb = include_str!("levels/e022.skb");
+    //     let level = Level::load(skb).unwrap();
+    //     let path = level.solve().unwrap();
+    //     assert_eq!(path.len(), 8);
+    // }
+}
+
+#[cfg(test)]
+mod unit_tests {
+    use super::*;
+
     #[test]
     fn test_statue_exit_bonk() {
         let skb = "######\n#@5͕5H#\n######";
@@ -723,21 +736,14 @@ mod tests {
     }
 
     #[test]
-    fn test_e022() {
-        let skb = include_str!("levels/e022.skb");
-        let mut level = Level::load(skb).unwrap();
-        level.must_get_chests();
-        let path = level.solve().unwrap();
-        assert_eq!(path.len(), 8);
+    fn test_indiana_jones() {
+        let skb = "#####\n#@oH̟#\n#####";
+        let level = Level::load(skb).unwrap();
+        let level = play(level, "D").unwrap();
+        let expected = "#####\n#@.o̟#\n#####";
+        let expected = Level::load(expected).unwrap();
+        assert_eq!(level, expected);
     }
-
-    // #[test]
-    // fn test_e022() {
-    //     let skb = include_str!("levels/e022.skb");
-    //     let level = Level::load(skb).unwrap();
-    //     let path = level.solve().unwrap();
-    //     assert_eq!(path.len(), 8);
-    // }
 }
 
 fn play(mut level: Level, commands: &str) -> GameState<Level> {
