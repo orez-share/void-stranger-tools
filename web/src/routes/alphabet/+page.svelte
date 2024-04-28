@@ -9,9 +9,9 @@
   import vIcon from '$lib/assets/violet.gif';
 
   import { Body } from 'svelte-body';
-  import PaletteButton from '../PaletteButton.svelte';
-  import VoidLetter from '../VoidLetter.svelte';
-  import Letter from '../Letter.svelte';
+  import PaletteButton from '$lib/../PaletteButton.svelte';
+  import VoidLetter from '$lib/../VoidLetter.svelte';
+  import Letter from '$lib/../Letter.svelte';
 
   const gray = {
     black: "#000",

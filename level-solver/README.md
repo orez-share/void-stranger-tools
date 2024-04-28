@@ -27,4 +27,4 @@ Currently, the level to solve is hardcoded.
 
 ## Level Format
 
-Levels are stored and displayed graphically: you can see some examples in [src/levels](/src/levels) (**note that the levels README contains spoilers**).
+Levels are stored and displayed graphically: you can see some examples in [src/levels](src/levels) (**note that the levels README contains spoilers**).
