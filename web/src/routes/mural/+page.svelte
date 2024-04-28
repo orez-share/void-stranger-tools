@@ -1,6 +1,7 @@
 <script>
   import { Body } from 'svelte-body';
-  import Mural from '../../Mural.svelte';
+  import PaletteRow from '$lib/../PaletteRow.svelte';
+  import Mural from '$lib/../Mural.svelte';
   let brandPattern;
   let text = "BE SURE TO DRINK YOUR OVALTINE";
 
@@ -23,11 +24,7 @@
   randomizePattern();
 </script>
 
-<svelte:head>
-  <title>Void Stranger Alphabet Tool</title>
-  <!-- <link rel="icon" href={pagePalette.icon} /> -->
-</svelte:head>
-<!-- <Body style={bgColor} /> -->
+<PaletteRow />
 <Mural {text} {brandPattern} />
 <input type="text" bind:value={text} />
 <button on:click={randomizePattern}>Randomize Pattern</button>
