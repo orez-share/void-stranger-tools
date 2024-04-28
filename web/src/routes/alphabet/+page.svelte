@@ -14,32 +14,32 @@
 </div>
 
 <div class="alphabet-grid">
-  <Letter letter="A" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="B" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="C" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="D" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="E" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="F" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="G" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="H" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="I" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="J" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="K" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="L" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="M" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="N" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="O" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="P" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Q" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="R" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="S" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="T" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="U" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="V" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="W" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="X" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Y" patternRequirement={patternRequirement} palette={paletteStyle} />
-  <Letter letter="Z" patternRequirement={patternRequirement} palette={paletteStyle} />
+  <Letter letter="A" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="B" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="C" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="D" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="E" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="F" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="G" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="H" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="I" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="J" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="K" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="L" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="M" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="N" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="O" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="P" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="Q" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="R" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="S" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="T" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="U" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="V" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="W" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="X" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="Y" {patternRequirement} palette={paletteStyle} />
+  <Letter letter="Z" {patternRequirement} palette={paletteStyle} />
 </div>
 
 <style>
