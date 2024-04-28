@@ -20,8 +20,8 @@
   };
 
   export let paletteStyle;
+  export let pagePalette = gray;
   let bgColor;
-  let pagePalette = gray;
   $: bgColor = `background-color: ${pagePalette.light}`;
   $: paletteStyle = `
     --color-black: ${pagePalette.black};
@@ -39,7 +39,7 @@
 
 <div class="palette-row-wrapper">
   <div class="palette-row">
-    <div class="home"><a href="/"><img src={pagePalette.icon} /></a></div>
+    <div class="home"><a href="/"><img alt="Home" src={pagePalette.icon} /></a></div>
     <PaletteButton bind:pagePalette name="Gray" palette={gray} />
     <PaletteButton bind:pagePalette name="R***" palette={{dark: "#c10d0c", light: "#f77b57", icon: rIcon}} />
     <PaletteButton bind:pagePalette name="O***" palette={{dark: "#bf5a3c", light: "#f9a140", icon: oIcon}} />

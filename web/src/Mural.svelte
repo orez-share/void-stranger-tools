@@ -1,12 +1,13 @@
 <script>
-  import grayIcon from '$lib/assets/gray.gif';
   import { onMount } from 'svelte';
   import brandMural from '$lib/assets/brand-mural.gif';
 
+  export let pagePalette;
   export let brandPattern;
   export let text;
   let canvas;
   let context;
+  let grayImage;
 
   const scale = 4;
 
@@ -17,13 +18,6 @@
   // ᖍ(∙⟞∙)ᖌ
   // https://stackoverflow.com/q/33137519/1163020
   const MAX_IDX = 36n;
-  const gray = {
-    black: "#000",
-    dark: "#808080",
-    light: "#C0C0C0",
-    white: "#FFF",
-    icon: grayIcon,
-  };
 
   // number of rows (and cols) in the brand
   const cellRows = 6;
@@ -42,12 +36,12 @@
   }
 
   const clear = () => {
-    context.fillStyle = gray.light;
+    context.fillStyle = pagePalette.light;
     context.fillRect(brandX, brandY, brandSize, brandSize);
   }
 
   const drawBit = (set, x, y) => {
-    context.fillStyle = set ? gray.white : gray.dark;
+    context.fillStyle = set ? pagePalette.white : pagePalette.dark;
     context.fillRect(x, y, 1, 1);
   }
 
@@ -58,13 +52,13 @@
     const x = brandX + cx * cellSize;
     const y = brandY + cy * cellSize;
     // clear area
-    context.fillStyle = gray.light;
+    context.fillStyle = pagePalette.light;
     context.fillRect(x, y, 7, 7);
     // surrounding bevel
-    context.fillStyle = gray.white;
+    context.fillStyle = pagePalette.white;
     context.fillRect(x + 6, y, 1, 7);
     context.fillRect(x, y + 6, 7, 1);
-    context.fillStyle = gray.dark;
+    context.fillStyle = pagePalette.dark;
     context.fillRect(x, y, 7, 1);
     context.fillRect(x, y, 1, 7);
     // bits
@@ -79,9 +73,43 @@
     drawBit(pattern & 2, x + 5, y + 5);
   }
 
+  // https://stackoverflow.com/a/5624139/1163020
+  const hexToRgb = (hex) => {
+    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+    let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+
+    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  const recolorBaseImage = () => {
+    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imageData.data;
+    let lookup = {
+      0x00: hexToRgb(pagePalette.black),
+      0x80: hexToRgb(pagePalette.dark),
+      0xC0: hexToRgb(pagePalette.light),
+      0xFF: hexToRgb(pagePalette.white),
+    };
+    for (let i = 0; i < data.length; i += 4) {
+      let {r, g, b} = lookup[grayImage[i]];
+      data[i] = r;
+      data[i+1] = g;
+      data[i+2] = b;
+    }
+    context.putImageData(imageData, 0, 0);
+  }
+
   const redraw = (text, brandPattern) => {
-    if (!context) return;
+    if (!context || !grayImage) return;
     clear();
+    recolorBaseImage();
+
     let idx = null;
     const nextIdx = () => {
       idx = idx != null ? idx + 1n : 0n;
@@ -132,7 +160,7 @@
     }
   }
 
-  $: redraw(text, brandPattern);
+  $: redraw(text, brandPattern, pagePalette);
 
   onMount(() => {
     context = canvas.getContext('2d');
@@ -142,7 +170,8 @@
     image.onload = () => {
       context.drawImage(image, 0, 0);
       context.lineWidth = 1;
-      redraw(text, brandPattern);
+      grayImage = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      redraw(text, brandPattern, pagePalette);
     }
   })
 </script>

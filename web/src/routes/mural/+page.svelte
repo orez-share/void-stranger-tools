@@ -2,6 +2,7 @@
   import { Body } from 'svelte-body';
   import PaletteRow from '$lib/../PaletteRow.svelte';
   import Mural from '$lib/../Mural.svelte';
+  let pagePalette;
   let brandPattern;
   let text = "BE SURE TO DRINK YOUR OVALTINE";
 
@@ -24,8 +25,8 @@
   randomizePattern();
 </script>
 
-<PaletteRow />
-<Mural {text} {brandPattern} />
+<PaletteRow bind:pagePalette />
+<Mural {text} {brandPattern} {pagePalette} />
 <input type="text" bind:value={text} />
 <button on:click={randomizePattern}>Randomize Pattern</button>
 
