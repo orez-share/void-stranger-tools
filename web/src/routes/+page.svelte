@@ -9,7 +9,7 @@
 
 <ul>
 <li><a href="alphabet" style={paletteStyle}>Alphabet Helper</a></li>
-<li><a href="mural">Mural Maker</a></li>
+<li><a href="mural" style={paletteStyle}>Mural Maker</a></li>
 </ul>
 
 <style>

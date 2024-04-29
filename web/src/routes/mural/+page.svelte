@@ -1,7 +1,7 @@
 <script>
   import { Body } from 'svelte-body';
   import PaletteRow from '$lib/../PaletteRow.svelte';
-  import Mural from '$lib/../Mural.svelte';
+  import Mural from './Mural.svelte';
   let pagePalette;
   let brandPattern;
   let text = "BE SURE TO DRINK YOUR OVALTINE";

@@ -1,7 +1,7 @@
 <script>
   import PaletteRow from '$lib/../PaletteRow.svelte';
-  import VoidLetter from '$lib/../VoidLetter.svelte';
-  import Letter from '$lib/../Letter.svelte';
+  import VoidLetter from './VoidLetter.svelte';
+  import Letter from './Letter.svelte';
 
   let patternRequirement = {ones: 0, zeroes: 0};
   let paletteStyle;
