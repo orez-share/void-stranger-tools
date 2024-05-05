@@ -113,8 +113,8 @@ impl Entities {
         })
     }
 
-    pub fn iter<'a>(&'a self) -> EntityIter<'a> {
-        (&self).into_iter()
+    pub fn iter(&self) -> EntityIter<'_> {
+        self.into_iter()
     }
 
     pub fn step(&mut self, from: usize, to: usize) {

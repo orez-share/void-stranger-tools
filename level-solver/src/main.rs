@@ -11,6 +11,7 @@ type Error = String;  // XXX: :)
 type Result<T> = core::result::Result<T, Error>;
 
 type GameState<L> = core::result::Result<L, GameOver>;
+#[allow(non_upper_case_globals)]
 const Continue: GameState<()> = Ok(());
 
 #[derive(Debug, Clone)]
@@ -55,7 +56,7 @@ struct Level {
 impl fmt::Debug for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut it = zip(&self.tiles, self.entities.iter_grid());
-        write!(f, "\n")?;
+        writeln!(f)?;
         for _ in 0..self.height {
             for (tile, entity) in it.by_ref().take(self.width) {
                 if let Some(e) = entity {
@@ -98,7 +99,7 @@ impl fmt::Debug for Level {
                     })?;
                 };
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -314,7 +315,7 @@ impl Level {
             Entity::RagingStatue => {
                 let dest = idx.wrapping_add(direction);
                 let squish = self.entities.at(dest).map(|e| e.is_squishable());
-                let can_squish = squish.clone().unwrap_or(true);
+                let can_squish = squish.unwrap_or(true);
                 let does_squish = squish.unwrap_or(false);
                 match self.tiles[dest] {
                     Tile::Wall => (),
@@ -543,7 +544,7 @@ impl Level {
                             'o' => Entity::Egg,
                             'K' => Entity::Bull(0),
                             'e' => Entity::Teeth,
-                            _ => return Err(format!("unexpected chr '{}'", chr as char)),
+                            _ => return Err(format!("unexpected chr '{chr}'")),
                         };
                         entities.add(tiles.len(), entity);
                         match line_it.peek() {
@@ -574,22 +575,22 @@ impl Level {
         })
     }
 
-    fn set_wings(&mut self) -> &mut Self {
+    pub fn set_wings(&mut self) -> &mut Self {
         self.void_wings = true;
         self
     }
 
-    fn set_blade(&mut self) -> &mut Self {
+    pub fn set_blade(&mut self) -> &mut Self {
         self.void_blade = true;
         self
     }
 
-    fn must_get_chests(&mut self) -> &mut Self {
+    pub fn must_get_chests(&mut self) -> &mut Self {
         self.must_get_chests = true;
         self
     }
 
-    fn set_golem_pacifist(&mut self) -> &mut Self {
+    pub fn set_golem_pacifist(&mut self) -> &mut Self {
         self.golem_pacifist = true;
         self
     }
