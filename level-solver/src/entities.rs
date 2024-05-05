@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Entity {
     Player,
@@ -61,10 +63,22 @@ impl LiftedEntity<'_> {
 
 // ===
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Eq, Debug)]
 pub struct Entities {
     grid: Vec<Option<(usize, Entity)>>,
     roster: Vec<Option<usize>>,
+}
+
+impl PartialEq for Entities {
+    fn eq(&self, other: &Self) -> bool {
+        self.grid == other.grid
+    }
+}
+
+impl Hash for Entities {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        self.grid.hash(state);
+    }
 }
 
 impl Entities {

@@ -313,7 +313,9 @@ impl Level {
             Entity::DarkIdol |
             Entity::RagingStatue => {
                 let dest = idx.wrapping_add(direction);
-                let can_squish = self.entities.at(dest).map_or(true, |e| e.is_squishable());
+                let squish = self.entities.at(dest).map(|e| e.is_squishable());
+                let can_squish = squish.clone().unwrap_or(true);
+                let does_squish = squish.unwrap_or(false);
                 match self.tiles[dest] {
                     Tile::Wall => (),
                     Tile::Hole | Tile::DeathFloor => {
@@ -323,7 +325,9 @@ impl Level {
                     Tile::PrimedTrap => if can_squish {
                         self.entities.step(idx, dest);
                         self.entities.at(dest).unwrap().on_push();
-                        self.drop_primed_traps(dest)?;
+                        if !does_squish {
+                            self.drop_primed_traps(dest)?;
+                        }
                     }
                     Tile::Trap => {
                         assert!(can_squish);
@@ -739,7 +743,7 @@ mod unit_tests {
     fn test_indiana_jones() {
         let skb = "#####\n#@oH̟#\n#####";
         let level = Level::load(skb).unwrap();
-        let level = play(level, "D").unwrap();
+        let level = play(level, "DS").unwrap();
         let expected = "#####\n#@.o̟#\n#####";
         let expected = Level::load(expected).unwrap();
         assert_eq!(level, expected);
