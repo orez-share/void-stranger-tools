@@ -5,14 +5,21 @@
 
 <PaletteRow bind:paletteStyle />
 
-<h1>Void Stranger Tools</h1>
+<div style={paletteStyle}>
+  <h1>Void Stranger Tools</h1>
 
-<ul>
-<li><a href="alphabet" style={paletteStyle}>Alphabet Helper</a></li>
-<li><a href="mural" style={paletteStyle}>Mural Maker</a></li>
-</ul>
+  <ul>
+  <li><a href="alphabet" style={paletteStyle}>Alphabet Helper</a></li>
+  <li><a href="mural" style={paletteStyle}>Mural Maker</a></li>
+  </ul>
+</div>
 
 <style>
+  div {
+    font-family: Arial;
+    color: var(--color-black);
+  }
+
   ul {
     line-height: 3em;
   }
