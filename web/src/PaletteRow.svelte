@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   import grayIcon from '$lib/assets/gray.gif';
   import rIcon from '$lib/assets/red.gif';
   import oIcon from '$lib/assets/orange.gif';
@@ -13,6 +14,7 @@
   import { persisted } from 'svelte-persisted-store';
   import PaletteButton from './PaletteButton.svelte';
 
+  const home = base || "/";
   const gray = {
     black: "#000",
     dark: "#808080",
@@ -41,7 +43,7 @@
 
 <div class="palette-row-wrapper">
   <div class="palette-row">
-    <div class="home"><a href="/"><img title="Home" alt="Home" src={$pagePalette.icon} /></a></div>
+    <div class="home"><a href={home}><img title="Home" alt="Home" src={$pagePalette.icon} /></a></div>
     <PaletteButton {pagePalette} name="Gray" palette={gray} />
     <PaletteButton {pagePalette} name="R***" palette={{dark: "#c10d0c", light: "#f77b57", icon: rIcon}} />
     <PaletteButton {pagePalette} name="O***" palette={{dark: "#bf5a3c", light: "#f9a140", icon: oIcon}} />
